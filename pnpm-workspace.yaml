@@ -2,8 +2,8 @@ allowBuilds:
   esbuild: true
   sharp: true
 minimumReleaseAgeExclude:
-  - astro@7.0.4 || 7.0.5
-  - "@astrojs/markdown-satteri@0.3.2"
+  - astro@7.0.6
+  - "@astrojs/markdown-satteri@0.3.2 || 0.3.3"
   - "@astrojs/compiler-binding-darwin-arm64@0.3.0"
   - "@astrojs/compiler-binding-darwin-x64@0.3.0"
   - "@astrojs/compiler-binding-linux-arm64-gnu@0.3.0"
@@ -15,4 +15,5 @@ minimumReleaseAgeExclude:
   - "@astrojs/compiler-binding-win32-x64-msvc@0.3.0"
   - "@astrojs/compiler-binding@0.3.0"
   - "@astrojs/compiler-rs@0.3.0"
+  - "@astrojs/internal-helpers@0.10.1"
   - prettier@3.9.4
