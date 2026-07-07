@@ -2,11 +2,13 @@
   font-family: "Segoe UI", Roboto, sans-serif;
 }
 
+html,
 body {
   width: 100%;
   height: 100vh;
 }
 
+html,
 body,
 h1,
 h2,
