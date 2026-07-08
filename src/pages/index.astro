@@ -16,7 +16,7 @@ const { title = "Welcome", childpage = false } = Astro.props;
 let content = "";
 if (!childpage) {
   const res = await fetch(
-    "https://github.com/mokanove/mokanove/raw/refs/heads/main/README.md",
+    "https://github.com/moaeiou/moaeiou/raw/refs/heads/main/README.md",
   );
   content = await marked.parse(await res.text());
 }
@@ -28,7 +28,7 @@ if (!childpage) {
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
-    <title>{title} | MoKanove</title>
+    <title>{title} | MoAEIOU</title>
     <script define:vars={{ version, buildtime }}>
       console.log(`V${version} ${buildtime}`);
     </script>
