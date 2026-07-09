@@ -6,5 +6,156 @@ import IndexPage from "../index.astro";
 <IndexPage title="MoITools" childpage={true}>
   <h1>MoITools [Testing]</h1>
   <p>Test your internet for IP address, network speed, DNS, and WebRTC leaks.</p>
+  <div class="tools-page">
+    <h3 id="sip">Getting data...</h3>
+    <div class="latency-block">
+      <span id="latency"></span>
+    </div>
+    <div class="speed-block">
+      <span id="download-speed"></span>
+    </div>
+    <button id="go-btn" type="button">Start Test</button>
+  </div>
   <a href="/">GO BACK</a>
 </IndexPage>
+
+<script>
+  interface IpJson {
+    ip: string;
+  }
+  const sipEl = document.getElementById("sip") as HTMLElement;
+  const fetchIps = async (): Promise<void> => {
+    const fetchJson = (url: string): Promise<IpJson> =>
+      fetch(url)
+        .then((r) => r.json())
+        .catch(() => ({ ip: "Failed" }));
+
+    const [v4Res, v6Res, dualRes] = await Promise.all([
+      fetchJson("https://ipinfo.io/json"),
+      fetchJson("https://v6.ipinfo.io/json"),
+      fetchJson("https://api64.ipify.org/?format=json"),
+    ]);
+
+    let preferred: string;
+    if (dualRes.ip !== "Failed") {
+      preferred = dualRes.ip.includes(":") ? "IPv6" : "IPv4";
+    } else {
+      preferred = "Unknown";
+    }
+
+    const lines = [
+      `IPv4: ${v4Res.ip}`,
+      `IPv6: ${v6Res.ip}`,
+      `Preferred: ${preferred}`,
+    ];
+
+    sipEl.innerHTML = lines.join("<br>");
+  };
+
+  const latencyEl = document.getElementById("latency") as HTMLElement;
+
+  const Latency = async (): Promise<void> => {
+    latencyEl.textContent = "Testing...";
+    const samples: number[] = [];
+    const url = "https://www.gstatic.com/generate_204";
+
+    for (let i = 0; i < 10; i++) {
+      const start = performance.now();
+      try {
+        await fetch(url, { mode: "no-cors", cache: "no-store" });
+        samples.push(performance.now() - start);
+      } catch {
+        // 忽略单次失败样本
+      }
+      await new Promise((r) => setTimeout(r, 50));
+    }
+
+    if (samples.length) {
+      samples.sort((a, b) => a - b);
+      const mid = samples.slice(
+        Math.floor(samples.length * 0.2),
+        Math.ceil(samples.length * 0.8),
+      );
+      const avg = mid.reduce((a, b) => a + b, 0) / mid.length;
+      latencyEl.textContent = `${avg.toFixed(1)} ms`;
+    } else {
+      latencyEl.textContent = "Error";
+    }
+  };
+
+  const downloadEl = document.getElementById("download-speed") as HTMLElement;
+  let isDownloading = false;
+  const Download = async (): Promise<void> => {
+    if (isDownloading) return;
+    isDownloading = true;
+    downloadEl.textContent = "Connecting...";
+
+    const ctrl = new AbortController();
+    const DURATION = 8000;
+    const CON = 10;
+    const startTime = performance.now();
+    let totalBytes = 0;
+
+    const timer = setInterval(() => {
+      const sec = (performance.now() - startTime) / 1000;
+      if (sec > 0.5) {
+        downloadEl.textContent = `${((totalBytes * 8) / 1e6 / sec).toFixed(2)} Mbps`;
+      }
+    }, 150);
+
+    const task = async (): Promise<void> => {
+      try {
+        const res = await fetch(
+          `https://speed.cloudflare.com/__down?bytes=${1e9}`,
+          {
+            signal: ctrl.signal,
+          },
+        );
+        const reader = res.body?.getReader();
+        if (!reader) return;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          totalBytes += value.length;
+        }
+      } catch {
+        // 忽略被 abort 或网络错误
+      }
+    };
+
+    setTimeout(() => ctrl.abort(), DURATION);
+
+    try {
+      await Promise.all(Array.from({ length: CON }, task));
+    } finally {
+      clearInterval(timer);
+      isDownloading = false;
+      const finalSec = (performance.now() - startTime) / 1000;
+      downloadEl.textContent =
+        totalBytes > 0
+          ? `${((totalBytes * 8) / 1e6 / finalSec).toFixed(2)} Mbps`
+          : "Failed";
+    }
+  };
+
+  let isTesting = false;
+  const goBtn = document.getElementById("go-btn") as HTMLButtonElement;
+
+  const Go = async (): Promise<void> => {
+    if (isTesting) return;
+    isTesting = true;
+    goBtn.disabled = true;
+    try {
+      await Latency();
+      await Download();
+    } catch (e) {
+      console.error("Something went wrong:", e);
+    } finally {
+      isTesting = false;
+      goBtn.disabled = false;
+    }
+  };
+
+  goBtn.addEventListener("click", Go);
+  fetchIps();
+</script>
