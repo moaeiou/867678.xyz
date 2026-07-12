@@ -18,6 +18,7 @@ pnpm install
 pnpm build
 ```
 ### ⚙️ Extended functionality
+Output on `dist/`
 ```
 # TEST
 pnpm dev

@@ -9,6 +9,11 @@ const content = await marked.parse(await res.text());
 export async function getStaticPaths() {
   const projects = [
     {
+      id: "qcsh",
+      title: "QuickShell",
+      url: "https://raw.githubusercontent.com/moaeiou/qcsh/refs/heads/main/README.md",
+    },
+    {
       id: "mineradio",
       title: "Mineradio",
       url: "https://raw.githubusercontent.com/moaeiou/mineradio/refs/heads/main/README.md",

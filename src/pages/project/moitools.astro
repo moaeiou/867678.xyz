@@ -63,7 +63,7 @@ import IndexPage from "../index.astro";
   const latencyEl = document.getElementById("latency") as HTMLElement;
 
   const Latency = async (): Promise<void> => {
-    latencyEl.textContent = "Testing...";
+    latencyEl.textContent = "Testing latency...";
     const samples: number[] = [];
     const url = "https://www.gstatic.com/generate_204";
 
