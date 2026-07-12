@@ -1,21 +1,31 @@
-*{
-    color: white;
-}
 body{
     background: url(https://cube.elemecdn.com/6/94/4d3ea53c084bad6931a56d5158a48jpeg.jpeg);
 }
 .forma{
     background: rgba(0, 0, 0, 0.3);
-    display: flex;
+    border-radius: 20px;
+    color: white;
 }
-@media screen and (max-width:718px) {
+@media screen and (min-width:719px) {
     .forma{
-        display: inline;
+        display: flex;
     }
+}
+.ip,
+.speedtest,
+.ci{
+    margin: 5% auto;
 }
 #go-btn{
     background: #00ddff;
     width: 100%;
+    margin: 1% auto 1% auto;
     font-size: 28px;
     font-weight: 800;
+}
+.gemini{
+    background: rgba(255,255,255,0.6);
+    border-radius: 10px;
+    padding: 2%;
+    color: black;
 }

@@ -6,7 +6,7 @@ import IndexPage from "../index.astro";
 ---
 
 <IndexPage title="MoITools" childpage={true}>
-  <h1>MoITools(Beta)</h1>
+  <h1 style="color: white">MoITools(Beta)</h1>
   <div class="forma">
     <div class="ip">
       <h3>IPinfo</h3>
@@ -16,15 +16,37 @@ import IndexPage from "../index.astro";
     <div class="speedtest">
       <h3>Internet Speed</h3>
       <p>Latency:</p><span id="latency">No data</span>
+      <p>Update:</p><span id="update-speed">No data</span>
       <p>Download:</p><span id="download-speed">No data</span>
     </div>
-    <div class="dns-leak"></div>
-    <div class="webrtc-leak"></div>
-    <div class="ua">
-      <h3>User-Agent:</h3><span id="user-agent">Getting data...</span>
+    <div class="ci">
+      <h3>Client Info:</h3>
+      <p>User-Agent:</p><span id="user-agent">Getting data...</span>
+      <p>Language:</p><span id="user-agent">Getting data...</span>
+      <p>Timezone:</p><span id="user-agent">Getting data...</span>
+      <p>HTTP/3(QUIC) Support:</p><span id="h3">Getting data...</span>
     </div>
-  </div><br>
+  </div>
   <button id="go-btn" type="button">Start Internet SpeedTest</button>
+  <div class="gemini">
+    <div class="dns-leak">
+      <h3>DNS Leak</h3>
+    </div>
+    <div class="webrtc-leak">
+      <h3>WebRTC Leak</h3>
+    </div>
+  </div>
+  <div class="introducir">
+    <h3>IPinfo</h3>
+    <ul>
+      <li>The computer using IP address to link</li>
+    </ul>
+    <h3>To be continube...</h3>
+  </div>
+  <p>
+    The test data is provided for reference only and comes with no guarantees of
+    any kind.
+  </p>
 </IndexPage>
 
 <script>

@@ -9,7 +9,7 @@
   overflow: auto;
 }
 
-@media (max-width: 450px) {
+@media (max-width: 500px) {
   .sidebar {
     display: none;
   }
