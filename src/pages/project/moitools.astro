@@ -1,22 +1,30 @@
 ---
+//css
+import "../../style/moitools.css";
 //components
 import IndexPage from "../index.astro";
 ---
 
 <IndexPage title="MoITools" childpage={true}>
-  <h1>MoITools [Testing]</h1>
-  <p>Test your internet for IP address, network speed, DNS, and WebRTC leaks.</p>
-  <div class="tools-page">
-    <h3 id="sip">Getting data...</h3>
-    <div class="latency-block">
-      <span id="latency"></span>
+  <h1>MoITools(Beta)</h1>
+  <div class="forma">
+    <div class="ip">
+      <h3>IPinfo</h3>
+      <p id="sip">Getting data...</p>
+      <p>Data from ipinfo and ipify.</p>
     </div>
-    <div class="speed-block">
-      <span id="download-speed"></span>
+    <div class="speedtest">
+      <h3>Internet Speed</h3>
+      <p>Latency:</p><span id="latency">No data</span>
+      <p>Download:</p><span id="download-speed">No data</span>
     </div>
-    <button id="go-btn" type="button">Start Test</button>
-  </div>
-  <a href="/">GO BACK</a>
+    <div class="dns-leak"></div>
+    <div class="webrtc-leak"></div>
+    <div class="ua">
+      <h3>User-Agent:</h3><span id="user-agent">Getting data...</span>
+    </div>
+  </div><br>
+  <button id="go-btn" type="button">Start Internet SpeedTest</button>
 </IndexPage>
 
 <script>
