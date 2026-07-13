@@ -14,8 +14,14 @@ body {
 }
 .ip,
 .speedtest,
-.ci {
+.ci,
+.leak,
+.introducir {
   background: rgba(255, 255, 255, 0.8);
+}
+.ip,
+.speedtest,
+.ci {
   border-radius: 15px;
   margin: 1% auto;
   padding: 5px;
@@ -26,12 +32,10 @@ body {
   font-size: 20px;
 }
 .leak {
-  background: rgba(255, 255, 255, 0.6);
   border: none;
   border-radius: 12px;
 }
 .introducir {
-  background: #fff;
   border-radius: 15px;
   padding: 5px;
 }
