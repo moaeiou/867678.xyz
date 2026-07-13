@@ -16,7 +16,7 @@ const { title = "Welcome", childpage = false } = Astro.props;
 let content = "";
 if (!childpage) {
   const res = await fetch(
-    "https://github.com/moaeiou/moaeiou/raw/refs/heads/main/README.md",
+    "https://raw.githubusercontent.com/moaeiou/moaeiou/refs/heads/main/README.md",
   );
   content = await marked.parse(await res.text());
 }
