@@ -8,6 +8,11 @@ import IndexPage from "../index.astro";
 <IndexPage title="MoITools" childpage={true}>
   <h1 style="color: white">MoITools(Beta)</h1>
   <div class="overview">
+    <div class="ip">
+      <h3>IPinfo</h3>
+      <p id="sip">Getting data...</p>
+      <p>Data from ipinfo and ipify.</p>
+    </div>
     <div class="speedtest">
       <h3>Internet Speed</h3>
       <p>Latency:</p><span id="latency">No data</span>
@@ -21,11 +26,6 @@ import IndexPage from "../index.astro";
       <p>Language:</p><span id="language">Getting data...</span>
       <p>Timezone:</p><span id="timezone">Getting data...</span>
       <p>HTTP/3(QUIC) Support:</p><span id="h3">Getting data...</span>
-    </div>
-    <div class="ip">
-      <h3>IPinfo</h3>
-      <p id="sip">Getting data...</p>
-      <p>Data from ipinfo and ipify.</p>
     </div>
   </div>
   <div class="leak">

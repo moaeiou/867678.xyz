@@ -1,10 +1,10 @@
 body {
   background: url(https://cube.elemecdn.com/6/94/4d3ea53c084bad6931a56d5158a48jpeg.jpeg);
 }
-@media screen and (max-width: 719px) {
+@media (min-width: 720px) {
   .overview {
     display: flex;
-    gap: 2rem;
+    gap: 1rem;
   }
   .ip,
   .speedtest,
