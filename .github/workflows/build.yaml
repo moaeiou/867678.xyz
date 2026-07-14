@@ -20,6 +20,8 @@ jobs:
 
       - name: Set up pnpm
         uses: pnpm/action-setup@master
+        with:
+          version: latest
 
       - name: Build!
         shell: bash
