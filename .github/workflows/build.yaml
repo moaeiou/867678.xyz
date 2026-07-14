@@ -19,9 +19,7 @@ jobs:
           node-version: latest
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@update-node
-        with:
-          version: latest
+        uses: pnpm/action-setup@master
 
       - name: Build!
         shell: bash
