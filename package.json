@@ -1,7 +1,7 @@
 {
   "name": "867678-xyz",
   "type": "module",
-  "version": "4.6.6",
+  "version": "4.6.7",
   "engines": {
     "node": ">=24.18.0"
   },
