@@ -1,47 +1,358 @@
 body {
-  background: url(https://cube.elemecdn.com/6/94/4d3ea53c084bad6931a56d5158a48jpeg.jpeg);
+  background: #f7f8fa;
+  color: #1f2937;
 }
-@media (min-width: 720px) {
-  .overview {
-    display: flex;
-    gap: 1rem;
-  }
-  .ip,
-  .speedtest,
-  .ci {
-    width: 33%;
-  }
+
+.tools-page {
+  width: min(1180px, 100%);
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: clamp(32px, 5vw, 64px) clamp(18px, 4vw, 48px) 64px;
+  box-sizing: border-box;
 }
-.ip,
-.speedtest,
-.ci,
-.leak,
-.introducir {
-  background: rgba(255, 255, 255, 0.8);
+
+.tools-header {
+  max-width: 700px;
+  margin-bottom: 32px;
 }
-.ip,
-.speedtest,
-.ci {
-  border-radius: 15px;
-  margin: 1% auto;
-  padding: 5px;
+
+.eyebrow,
+.card-kicker {
+  margin: 0 0 7px;
+  color: #64748b;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1.4;
+  text-transform: uppercase;
 }
-#sis {
-  background: linear-gradient(135deg, #00c6ff, #0072ff);
-  width: 100%;
-  font-size: 20px;
+
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
-.leak {
-  border: none;
+
+.title-row h1 {
+  color: #111827;
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+
+.beta-badge,
+.status-badge,
+.coming-soon {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #dbe4f0;
+  border-radius: 999px;
+  background: #fff;
+  color: #526174;
+  font-size: 0.7rem;
+  font-weight: 650;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.beta-badge {
+  padding: 6px 9px;
+}
+
+.tools-summary {
+  margin: 13px 0 0;
+  color: #64748b;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.tool-card,
+.secondary-section,
+.privacy-note {
+  border: 1px solid #e3e8ef;
   border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.025);
 }
-.introducir {
-  border-radius: 15px;
-  padding: 5px;
+
+.tool-card {
+  min-width: 0;
+  padding: 22px;
+  box-sizing: border-box;
 }
-#sis,
-.leak,
-.introducir {
-  margin: 1% auto 1% auto;
-  padding: 5px;
+
+.ip-card,
+.speed-card {
+  grid-column: span 6;
+}
+
+.client-card {
+  grid-column: 1 / -1;
+}
+
+.card-heading,
+.section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.card-heading h2,
+.section-heading h2,
+.privacy-note h2 {
+  margin: 0;
+  color: #172033;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+}
+
+.status-badge {
+  padding: 6px 9px;
+  border-color: #cdebd9;
+  background: #f2fbf5;
+  color: #277a48;
+}
+
+.ip-result {
+  min-height: 76px;
+  margin: 24px 0 18px;
+  color: #111827;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.9rem;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+
+.card-note {
+  margin: 0;
+  color: #94a0af;
+  font-size: 0.76rem;
+}
+
+.metric-list,
+.detail-list {
+  margin: 20px 0 0;
+}
+
+.metric-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.metric-list > div {
+  min-width: 0;
+  padding: 13px;
+  border-radius: 8px;
+  background: #f7f9fb;
+}
+
+.metric-list dt,
+.detail-list dt {
+  color: #7c8999;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.metric-list dd {
+  margin: 5px 0 0;
+  color: #172033;
+  font-size: 0.9rem;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+#sis {
+  width: 100%;
+  min-height: 42px;
+  margin-top: 16px;
+  padding: 9px 16px;
+  border: 1px solid #1d4ed8;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #fff;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+#sis:hover {
+  background: #1d4ed8;
+}
+
+#sis:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 3px;
+}
+
+#sis:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.detail-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.detail-list > div {
+  min-width: 0;
+  padding: 14px 0;
+  border-top: 1px solid #edf0f4;
+}
+
+.detail-list > div:nth-child(odd) {
+  padding-right: 24px;
+}
+
+.detail-list > div:nth-child(even) {
+  padding-left: 24px;
+  border-left: 1px solid #edf0f4;
+}
+
+.detail-list dd {
+  margin: 5px 0 0;
+  color: #344054;
+  font-size: 0.84rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.secondary-section {
+  margin-top: 16px;
+  padding: 22px;
+}
+
+.coming-soon {
+  padding: 7px 10px;
+  background: #f8fafc;
+}
+
+.leak-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.leak-item {
+  padding: 17px;
+  border: 1px solid #edf0f4;
+  border-radius: 9px;
+  background: #fafbfc;
+}
+
+.leak-item h3 {
+  color: #253044;
+  font-size: 0.9rem;
+}
+
+.leak-item p {
+  margin: 7px 0 0;
+  color: #7c8999;
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+.privacy-note {
+  margin-top: 16px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  border-color: #dbe5f1;
+  background: #f8fbff;
+}
+
+.privacy-icon {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #e4f0ff;
+  color: #2563eb;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.privacy-note p {
+  margin: 5px 0 0;
+  color: #6f7d8f;
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+@media (min-width: 1050px) {
+  .ip-card {
+    grid-column: span 4;
+  }
+
+  .speed-card {
+    grid-column: span 5;
+  }
+
+  .client-card {
+    grid-column: span 3;
+  }
+
+  .detail-list {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-list > div:nth-child(odd),
+  .detail-list > div:nth-child(even) {
+    padding-inline: 0;
+    border-left: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .tools-page {
+    padding-top: 80px;
+  }
+
+  .ip-card,
+  .speed-card,
+  .client-card {
+    grid-column: 1 / -1;
+  }
+
+  .detail-list,
+  .leak-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-list > div:nth-child(odd),
+  .detail-list > div:nth-child(even) {
+    padding-inline: 0;
+    border-left: 0;
+  }
+}
+
+@media (max-width: 420px) {
+  .metric-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #sis {
+    transition: none;
+  }
 }

@@ -6,61 +6,102 @@ import IndexPage from "../index.astro";
 ---
 
 <IndexPage title="MoITools" childpage={true}>
-  <h1 style="color: white">MoITools(Beta)</h1>
-  <div class="overview">
-    <div class="ip">
-      <h3>IPinfo</h3>
-      <p id="sip">Getting data...</p>
-      <p>Data from ipinfo and ipify.</p>
-    </div>
-    <div class="speedtest">
-      <h3>Internet Speed</h3>
-      <p>Latency:</p><span id="latency">No data</span>
-      <p>Update:</p><span id="update-speed">No data</span>
-      <p>Download:</p><span id="download-speed">No data</span>
-      <button id="sis" type="button">SpeedTest</button>
-    </div>
-    <div class="ci">
-      <h3>Client Info:</h3>
-      <p>User-Agent:</p><span id="user-agent">Getting data...</span>
-      <p>Language:</p><span id="language">Getting data...</span>
-      <p>Timezone:</p><span id="timezone">Getting data...</span>
-      <p>HTTP/3(QUIC) Support:</p><span id="h3">Getting data...</span>
-    </div>
-  </div>
-  <div class="leak">
-    <div class="webrtc-leak">
-      <h3>WebRTC Leak</h3>
-    </div>
-    <div class="dns-leak">
-      <h3>DNS Leak</h3>
-    </div>
-  </div>
-  <div class="introducir">
-    <h3>IPinfo</h3>
-    <ul>
-      <li>The computer using IP address to link</li>
-    </ul>
-    <h3>SpeedTest</h3>
-    <ul>
-      <li>The computer using IP address to link</li>
-    </ul>
-    <h3>Client Info</h3>
-    <ul>
-      <li>The computer using IP address to link</li>
-    </ul>
-    <h3>Leaks</h3>
-    <ul>
-      <li>The computer using IP address to link</li>
-    </ul>
-    <p>
-      We will not collect any of your private information; please feel free to
-      run the test.
-    </p>
-    <p>
-      The test data is provided for reference only and comes with no guarantees
-      of any kind.
-    </p>
+  <div class="tools-page">
+    <header class="tools-header">
+      <p class="eyebrow">Network utilities</p>
+      <div class="title-row">
+        <h1>MoITools</h1>
+        <span class="beta-badge">Beta</span>
+      </div>
+      <p class="tools-summary">
+        A lightweight set of browser-based diagnostics for your current
+        connection and device.
+      </p>
+    </header>
+
+    <section class="tools-grid" aria-label="Network diagnostics">
+      <article class="tool-card ip-card">
+        <div class="card-heading">
+          <div>
+            <p class="card-kicker">Connection</p>
+            <h2>IP addresses</h2>
+          </div>
+          <span class="status-badge">Automatic</span>
+        </div>
+        <p id="sip" class="ip-result" aria-live="polite">Getting data...</p>
+        <p class="card-note">Provided by ipinfo and ipify.</p>
+      </article>
+
+      <article class="tool-card speed-card">
+        <div class="card-heading">
+          <div>
+            <p class="card-kicker">Performance</p>
+            <h2>Internet speed</h2>
+          </div>
+        </div>
+        <dl class="metric-list">
+          <div>
+            <dt>Latency</dt>
+            <dd id="latency" aria-live="polite">No data</dd>
+          </div>
+          <div>
+            <dt>Upload</dt>
+            <dd id="update-speed">Not available</dd>
+          </div>
+          <div>
+            <dt>Download</dt>
+            <dd id="download-speed" aria-live="polite">No data</dd>
+          </div>
+        </dl>
+        <button id="sis" type="button">Run speed test</button>
+      </article>
+
+      <article class="tool-card client-card">
+        <div class="card-heading">
+          <div>
+            <p class="card-kicker">Browser</p>
+            <h2>Client information</h2>
+          </div>
+        </div>
+        <dl class="detail-list">
+          <div><dt>User agent</dt><dd id="user-agent">Getting data...</dd></div>
+          <div><dt>Language</dt><dd id="language">Getting data...</dd></div>
+          <div><dt>Timezone</dt><dd id="timezone">Getting data...</dd></div>
+          <div><dt>HTTP/3 support</dt><dd id="h3">Getting data...</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="secondary-section" aria-labelledby="privacy-tests-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Privacy</p>
+          <h2 id="privacy-tests-title">Leak tests</h2>
+        </div>
+        <span class="coming-soon">Coming soon</span>
+      </div>
+      <div class="leak-grid">
+        <div class="leak-item">
+          <h3>WebRTC leak</h3>
+          <p>Check whether your browser exposes an additional IP address.</p>
+        </div>
+        <div class="leak-item">
+          <h3>DNS leak</h3>
+          <p>Inspect which DNS resolvers your connection is currently using.</p>
+        </div>
+      </div>
+    </section>
+
+    <aside class="privacy-note">
+      <div class="privacy-icon" aria-hidden="true">✓</div>
+      <div>
+        <h2>Tests run in your browser</h2>
+        <p>
+          MoITools does not store your test results. Measurements are provided
+          for reference and may vary with network conditions.
+        </p>
+      </div>
+    </aside>
   </div>
 </IndexPage>
 
@@ -69,6 +110,20 @@ import IndexPage from "../index.astro";
     ip: string;
   }
   const sipEl = document.getElementById("sip") as HTMLElement;
+
+  const setText = (id: string, value: string): void => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = value;
+  };
+
+  setText("user-agent", navigator.userAgent);
+  setText("language", navigator.language);
+  setText(
+    "timezone",
+    Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown",
+  );
+  setText("h3", "Not tested");
+
   const fetchIps = async (): Promise<void> => {
     const fetchJson = (url: string): Promise<IpJson> =>
       fetch(url)
