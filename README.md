@@ -1,5 +1,4 @@
 # 867678.xyz
-
 > Source code about <https://867678.xyz>
 
 ## 🛠️ Build Guide
