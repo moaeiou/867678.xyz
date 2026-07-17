@@ -12,13 +12,15 @@ const buildtime = dayjs().format("YYYY-MM-DD HH:mm:ss ([UTC]ZZ)");
 //markdown
 import { marked } from "marked";
 import "github-markdown-css/github-markdown.css";
+import { fetchRemoteMarkdown } from "../lib/remote-markdown";
 const { title = "Welcome", childpage = false } = Astro.props;
 let content = "";
 if (!childpage) {
-  const res = await fetch(
-    "https://raw.githubusercontent.com/moaeiou/moaeiou/refs/heads/main/README.md",
+  content = await marked.parse(
+    await fetchRemoteMarkdown(
+      "https://raw.githubusercontent.com/moaeiou/moaeiou/refs/heads/main/README.md",
+    ),
   );
-  content = await marked.parse(await res.text());
 }
 ---
 

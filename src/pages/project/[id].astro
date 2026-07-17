@@ -2,10 +2,9 @@
 //css
 import { marked } from "marked";
 import IndexPage from "../index.astro";
+import { fetchRemoteMarkdown } from "../../lib/remote-markdown";
 //md
-const { url, title } = Astro.props;
-const res = await fetch(url);
-const content = await marked.parse(await res.text());
+const { content, title } = Astro.props;
 export async function getStaticPaths() {
   const projects = [
     {
@@ -44,10 +43,15 @@ export async function getStaticPaths() {
       url: "https://raw.githubusercontent.com/morouter/luci-app-pm/main/README.md",
     },
   ];
-  return projects.map(({ id, ...props }) => ({
-    params: { id },
-    props,
-  }));
+  return Promise.all(
+    projects.map(async ({ id, title, url }) => ({
+      params: { id },
+      props: {
+        title,
+        content: await marked.parse(await fetchRemoteMarkdown(url)),
+      },
+    })),
+  );
 }
 ---
 

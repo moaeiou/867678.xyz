@@ -1,56 +1,136 @@
 ---
-// css
 import "../style/sidebar.css";
+
+const pathname = Astro.url.pathname;
+const isActive = (href: string) =>
+  href === "/" ? pathname === href : pathname.startsWith(href);
+
+const sections = [
+  {
+    id: "overview",
+    label: "Start",
+    links: [{ href: "/", label: "Overview" }],
+  },
+  {
+    id: "web-tools",
+    label: "Web Tools",
+    links: [
+      { href: "/project/moitools", label: "MoITools" },
+      { href: "/project/cyaks", label: "CyAks" },
+    ],
+  },
+  {
+    id: "software",
+    label: "Software",
+    links: [
+      { href: "/project/qcsh", label: "QuickShell" },
+      { href: "/project/mineradio", label: "Mineradio" },
+      { href: "/project/fancyindex-theme", label: "FancyIndex Theme" },
+      { href: "/project/contento24", label: "Contento24" },
+    ],
+  },
+  {
+    id: "openwrt",
+    label: "OpenWrt",
+    links: [
+      { href: "/project/luci-app-ezsgx", label: "LuCI App EZSgX" },
+      { href: "/project/luci-app-oplist", label: "LuCI App OPList" },
+      { href: "/project/luci-app-pm", label: "LuCI App PM" },
+    ],
+  },
+  {
+    id: "document",
+    label: "Documentation",
+    links: [
+      { href: "/doc/OpenWrt", label: "OpenWrt" },
+      { href: "/doc/Mirror", label: "Mirrors" },
+      { href: "/doc/bts", label: "Build This Site" },
+      { href: "/doc/MoPL", label: "Mo Public License" },
+    ],
+  },
+];
 ---
 
-<div class="sidebar">
-  <div class="header">
-    <div class="avatar-container">
-      <a href="/"><img src="/favicon.svg" alt="Logo" /></a>
-    </div>
-    <h2>Mo AEIOU</h2>
+<button
+  class="nav-trigger"
+  type="button"
+  aria-label="Open navigation"
+  aria-controls="site-navigation"
+  aria-expanded="false"
+>
+  <span></span><span></span><span></span>
+</button>
+
+<aside class="sidebar" id="site-navigation" aria-label="Site navigation">
+  <div class="sidebar-header">
+    <a class="brand" href="/" aria-label="Mo AEIOU home">
+      <img src="/favicon.svg" alt="Logo" />
+      <span>Mo AEIOU</span>
+    </a>
+    <button
+      class="nav-close"
+      type="button"
+      aria-label="Close navigation"
+      data-nav-close
+    >
+      <span></span><span></span>
+    </button>
   </div>
-  <nav class="section">
-    <h3 class="section-label">Web Project</h3>
-    <div class="list">
-      <a href="/project/moitools" class="item">MoITools</a>
-      <a href="/project/cyaks" class="item">CyAks</a>
-    </div>
-  </nav>
-  <nav class="section">
-    <h3 class="section-label">Program</h3>
-    <div class="list">
-      <a href="/project/qcsh" class="item runnable">
-        <span class="status-icon"></span>QuickShell
-      </a>
-      <a href="/project/mineradio" class="item runnable">
-        <span class="status-icon"></span>Mineradio
-      </a>
-      <a href="/project/fancyindex-theme" class="item runnable">
-        <span class="status-icon"></span>FancyIndex-Theme
-      </a>
-      <a href="/project/contento24" class="item runnable">
-        <span class="status-icon"></span>Contento24
-      </a>
-      <a href="/project/luci-app-ezsgx" class="item runnable">
-        <span class="status-icon"></span>LuCI-APP-EZSgX
-      </a>
-      <a href="/project/luci-app-oplist" class="item runnable">
-        <span class="status-icon"></span>LuCI-APP-OPList
-      </a>
-      <a href="/project/luci-app-pm" class="item runnable">
-        <span class="status-icon"></span>LuCI-APP-PM
-      </a>
-    </div>
-  </nav>
-  <nav class="section">
-    <h3 class="section-label">Document</h3>
-    <div class="list">
-      <a href="/doc/bts" class="item doc">Build This Site</a>
-      <a href="/doc/Mirror" class="item doc">Mirror</a>
-      <a href="/doc/OpenWrt" class="item doc">OpenWrt</a>
-      <a href="/doc/MoPL" class="item doc">Mo Public License</a>
-    </div>
-  </nav>
-  <p>&copy; 2026 MoAEIOU</p>
-</div>
+
+  <div class="sidebar-content">
+    {
+      sections.map((section) => (
+        <nav class="section" aria-labelledby={`nav-${section.id}`}>
+          <h2 class="section-label" id={`nav-${section.id}`}>
+            {section.label}
+          </h2>
+          <div class="nav-list">
+            {section.links.map((link) => (
+              <a
+                href={link.href}
+                class:list={["nav-item", { active: isActive(link.href) }]}
+                aria-current={isActive(link.href) ? "page" : undefined}
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
+        </nav>
+      ))
+    }
+  </div>
+
+  <p class="sidebar-footer">&copy; 2026 MoAEIOU</p>
+</aside>
+
+<script>
+  const sidebar = document.querySelector<HTMLElement>(".sidebar");
+  const trigger = document.querySelector<HTMLButtonElement>(".nav-trigger");
+  const closeButtons =
+    document.querySelectorAll<HTMLElement>("[data-nav-close]");
+
+  const setOpen = (open: boolean) => {
+    document.documentElement.classList.toggle("nav-open", open);
+    trigger?.setAttribute("aria-expanded", String(open));
+    if (open) sidebar?.querySelector<HTMLElement>("a, button")?.focus();
+    else trigger?.focus();
+  };
+
+  trigger?.addEventListener("click", () => setOpen(true));
+  closeButtons.forEach((button) =>
+    button.addEventListener("click", () => setOpen(false)),
+  );
+  sidebar?.querySelectorAll("a").forEach((link) =>
+    link.addEventListener("click", () => {
+      if (matchMedia("(max-width: 640px)").matches) setOpen(false);
+    }),
+  );
+  document.addEventListener("keydown", (event) => {
+    if (
+      event.key === "Escape" &&
+      document.documentElement.classList.contains("nav-open")
+    ) {
+      setOpen(false);
+    }
+  });
+</script>
