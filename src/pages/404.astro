@@ -1,13 +1,34 @@
 ---
-//css
-import "../style/404.css";
-//astro
 import IndexPage from "./index.astro";
+import "../style/404.css";
 ---
 
 <IndexPage title="404" childpage={true}>
-  <h1 class="colorado" style="font-size:60px">404 Not Found</h1>
-  <p class="colorado" style="font-size:18px">
-    Lo siento, has llegado al Tapón del Darién.
-  </p>
+  <div class="not-found-page">
+    <main class="not-found-card">
+      <div class="error-code" aria-hidden="true">404</div>
+      <div class="error-content">
+        <h1>This route goes nowhere.</h1>
+        <p class="darien" lang="es">
+          Lo siento, has llegado al Tapón del Darién.
+        </p>
+        <p class="description">
+          The page may have moved, or the link may be incorrect.
+        </p>
+        <div class="error-actions">
+          <a class="primary-action" href="/">Back to overview</a>
+          <button class="secondary-action" type="button" data-go-back>
+            Go back
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
 </IndexPage>
+
+<script>
+  document.querySelector("[data-go-back]")?.addEventListener("click", () => {
+    if (history.length > 1) history.back();
+    else location.href = "/";
+  });
+</script>

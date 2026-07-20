@@ -161,11 +161,11 @@ import IndexPage from "../index.astro";
 
     for (let i = 0; i < 10; i++) {
       const start = performance.now();
-      try {
-        await fetch(url, { mode: "no-cors", cache: "no-store" });
+      const [result] = await Promise.allSettled([
+        fetch(url, { mode: "no-cors", cache: "no-store" }),
+      ]);
+      if (result.status === "fulfilled") {
         samples.push(performance.now() - start);
-      } catch {
-        // 忽略单次失败样本
       }
       await new Promise((r) => setTimeout(r, 50));
     }
@@ -204,29 +204,25 @@ import IndexPage from "../index.astro";
     }, 150);
 
     const task = async (): Promise<void> => {
-      try {
-        const res = await fetch(
-          `https://speed.cloudflare.com/__down?bytes=${1e9}`,
-          {
-            signal: ctrl.signal,
-          },
-        );
-        const reader = res.body?.getReader();
-        if (!reader) return;
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          totalBytes += value.length;
-        }
-      } catch {
-        // 忽略被 abort 或网络错误
+      const res = await fetch(
+        `https://speed.cloudflare.com/__down?bytes=${1e9}`,
+        {
+          signal: ctrl.signal,
+        },
+      );
+      const reader = res.body?.getReader();
+      if (!reader) return;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        totalBytes += value.length;
       }
     };
 
     setTimeout(() => ctrl.abort(), DURATION);
 
     try {
-      await Promise.all(Array.from({ length: CON }, task));
+      await Promise.allSettled(Array.from({ length: CON }, task));
     } finally {
       clearInterval(timer);
       isDownloading = false;
