@@ -29,7 +29,7 @@ import IndexPage from "../index.astro";
           <span class="status-badge">Automatic</span>
         </div>
         <p id="sip" class="ip-result" aria-live="polite">Getting data...</p>
-        <p class="card-note">Provided by ipinfo and ipify.</p>
+        <p class="card-note">Data from ipinfo and ipify.</p>
       </article>
 
       <article class="tool-card speed-card">
@@ -53,7 +53,7 @@ import IndexPage from "../index.astro";
             <dd id="download-speed" aria-live="polite">No data</dd>
           </div>
         </dl>
-        <button id="sis" type="button">Run speed test</button>
+        <button id="sis" type="button">Run speedtest</button>
       </article>
 
       <article class="tool-card client-card">
@@ -64,8 +64,10 @@ import IndexPage from "../index.astro";
           </div>
         </div>
         <dl class="detail-list">
-          <div><dt>User agent</dt><dd id="user-agent">Getting data...</dd></div>
-          <div><dt>Language</dt><dd id="language">Getting data...</dd></div>
+          <div><dt>User Agent</dt><dd id="user-agent">Getting data...</dd></div>
+          <div>
+            <dt>System Language</dt><dd id="language">Getting data...</dd>
+          </div>
           <div><dt>Timezone</dt><dd id="timezone">Getting data...</dd></div>
           <div><dt>HTTP/3 support</dt><dd id="h3">Getting data...</dd></div>
         </dl>
@@ -122,7 +124,7 @@ import IndexPage from "../index.astro";
     "timezone",
     Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown",
   );
-  setText("h3", "Not tested");
+  setText("h3", "Not available");
 
   const fetchIps = async (): Promise<void> => {
     const fetchJson = (url: string): Promise<IpJson> =>

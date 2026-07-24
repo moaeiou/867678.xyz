@@ -19,5 +19,5 @@ minimumReleaseAgeExclude:
   - "@astrojs/compiler-rs@0.3.0"
   - "@astrojs/internal-helpers@0.10.1"
   - "@astrojs/telemetry@3.3.3"
-  - miniflare@4.20260721.0
-  - wrangler@4.113.0
+  - miniflare@4.20260722.0
+  - wrangler@4.114.0
