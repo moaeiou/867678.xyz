@@ -9,6 +9,7 @@ import {
   toggleRepost,
 } from "./api";
 import {
+  autoSignUp,
   beginTwoFactor,
   changeEmail,
   changePassword,
@@ -1234,6 +1235,13 @@ function mountFuckxter(container: HTMLElement): void {
   });
 
   renderAccountUI();
+
+  // 首次访问自动注册访客账号；主动退出登录的本机账号不会被重新登入
+  void autoSignUp().then((auto) => {
+    if (!auto || account) return;
+    account = auto;
+    renderAccountUI();
+  });
 
   // 离开页面（客户端路由）时释放观察器与断点监听，避免僵尸回调
   document.addEventListener(

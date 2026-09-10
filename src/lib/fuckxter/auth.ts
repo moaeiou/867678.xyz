@@ -7,6 +7,7 @@
  *
  * 约定的后端接口：
  *   POST  /api/fuckxter/auth/signup            body: { name, email, password } -> Account
+ *   POST  /api/fuckxter/auth/guest                                             -> Account | null
  *   POST  /api/fuckxter/auth/signin            body: { email, password }       -> Account
  *   POST  /api/fuckxter/auth/signout
  *   PATCH /api/fuckxter/account/profile        body: { name, bio }             -> Account
@@ -131,6 +132,31 @@ export async function signUp(input: {
   writeAccount(account);
   writeSecret(obscure(input.password));
   // TODO(后端): return fetch("/api/fuckxter/auth/signup", { method: "POST", body: JSON.stringify(input) }).then((r) => r.json())
+  return delay(account);
+}
+
+/**
+ * 自动注册：首次访问时静默创建一个访客账号并直接登录，免去手动注册。
+ * 本机已有账号（含主动退出登录的）时不做任何事，返回 null。
+ * 后端就绪后应替换为匿名/游客会话接口。
+ */
+export async function autoSignUp(): Promise<Account | null> {
+  if (readAccount()) return null;
+  const suffix = randomCode("23456789abcdefghjkmnpqrstuvwxyz", 4);
+  const account: Account = {
+    profile: {
+      name: `访客${suffix}`,
+      handle: `guest${suffix}`,
+      bio: "",
+      email: `guest${suffix}@local.demo`,
+    },
+    twoFactorEnabled: false,
+    createdAt: new Date().toISOString(),
+  };
+  writeAccount(account);
+  // 随机密码：自动账号没有已知的登录口令，登录仅限手动注册的账号
+  writeSecret(obscure(randomCode("ACDEFGHJKLMNPQRSTUVWXY3456789", 24)));
+  // TODO(后端): return fetch("/api/fuckxter/auth/guest", { method: "POST" }).then((r) => r.json())
   return delay(account);
 }
 
