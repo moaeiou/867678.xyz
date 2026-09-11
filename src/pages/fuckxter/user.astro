@@ -30,10 +30,18 @@ import FuckxterLayout from "../../layouts/FuckxterLayout.astro";
 
     <div class="fk-user-main">
       <div class="fk-user-inner">
-        <section class="fk-user-head" data-role="user-head" aria-label="用户资料">
+        <section
+          class="fk-user-head"
+          data-role="user-head"
+          aria-label="用户资料"
+        >
           <p class="fk-status">加载中…</p>
         </section>
-        <section class="fk-user-posts" data-role="user-posts" aria-label="该用户的帖子">
+        <section
+          class="fk-user-posts"
+          data-role="user-posts"
+          aria-label="该用户的帖子"
+        >
         </section>
       </div>
     </div>
@@ -42,8 +50,13 @@ import FuckxterLayout from "../../layouts/FuckxterLayout.astro";
 
 <script>
   import { navigate } from "astro:transitions/client";
-  import { getPostsByUser, toggleLike, toggleRepost, toggleSave } from "../../lib/fuckxter/api";
-  import { getAccount, signOut, type Account } from "../../lib/fuckxter/auth";
+  import {
+    getPostsByUser,
+    toggleLike,
+    toggleRepost,
+    toggleSave,
+  } from "../../lib/fuckxter/api";
+  import { getAccount, type Account } from "../../lib/fuckxter/auth";
   import {
     authorAvatar,
     avatarGradient,
@@ -53,29 +66,29 @@ import FuckxterLayout from "../../layouts/FuckxterLayout.astro";
     renderPost,
     statusRow,
   } from "../../lib/fuckxter/dom";
+  import { onFuckxterPageReady } from "../../lib/fuckxter/page";
   import type { Post } from "../../lib/fuckxter/types";
+  import { postPath } from "../../lib/fuckxter/urls";
 
   const fullTime = (iso: string) =>
     new Date(iso).toLocaleString("zh-CN", { dateStyle: "long" });
 
-  function applyThemeChoice(mode: string) {
-    localStorage.setItem("theme", mode);
-    const dark =
-      mode === "dark" ||
-      (mode === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
-    document.documentElement.dataset.themeMode = mode;
-    document.documentElement.dataset.theme = dark ? "dark" : "light";
-  }
-
   function renderUserHead(
     info: { name: string; handle: string; verified?: boolean },
-    detail: { bio?: string; region?: string; gender?: string; birthday?: string; joined?: string },
+    detail: {
+      bio?: string;
+      region?: string;
+      gender?: string;
+      birthday?: string;
+      joined?: string;
+    },
     postCount: number,
     isOwn: boolean,
-  ): HTMLElement {
-    const head = el("section", "fk-user-head-card");
+  ): DocumentFragment {
+    const fragment = document.createDocumentFragment();
     const banner = el("div", "fk-user-banner");
     banner.setAttribute("style", avatarGradient(info.handle));
+    const card = el("section", "fk-user-head-card");
 
     const row = el("div", "fk-user-row");
     const avatar = authorAvatar(info.handle, info.name, "fk-user-avatar");
@@ -98,7 +111,11 @@ import FuckxterLayout from "../../layouts/FuckxterLayout.astro";
     const chip = (label: string, value: string) => {
       if (!value) return;
       const span = el("span", "fk-user-chip");
-      span.textContent = `${label}：${value}`;
+      const chipLabel = el("span", "fk-user-chip-label");
+      chipLabel.textContent = label;
+      const chipValue = el("span", "fk-user-chip-value");
+      chipValue.textContent = value;
+      span.append(chipLabel, chipValue);
       meta.append(span);
     };
     chip("性别", detail.gender ?? "");
@@ -107,7 +124,7 @@ import FuckxterLayout from "../../layouts/FuckxterLayout.astro";
     if (detail.joined) chip("加入时间", fullTime(detail.joined));
     chip("帖子", String(postCount));
 
-    head.append(banner, row, meta);
+    card.append(row, meta);
 
     if (isOwn) {
       const actions = el("div", "fk-user-actions");
@@ -115,45 +132,16 @@ import FuckxterLayout from "../../layouts/FuckxterLayout.astro";
       const edit = el("button", "fk-primary-btn");
       edit.type = "button";
       edit.textContent = "编辑资料";
-      edit.addEventListener("click", () => navigate("/fuckxter/settings"));
+      edit.addEventListener("click", () =>
+        navigate("/fuckxter/settings/profile"),
+      );
 
-      const themeWrap = el("span", "fk-user-theme");
-      for (const [mode, label] of [
-        ["auto", "主题：跟随系统"],
-        ["light", "主题：浅色"],
-        ["dark", "主题：深色"],
-      ] as const) {
-        const btn = el("button", "fk-ghost-btn fk-user-theme-btn");
-        btn.type = "button";
-        btn.textContent = label;
-        btn.dataset.theme = mode;
-        btn.addEventListener("click", () => {
-          applyThemeChoice(mode);
-          syncTheme();
-        });
-        themeWrap.append(btn);
-      }
-      const syncTheme = () => {
-        const current = localStorage.getItem("theme") ?? "auto";
-        for (const btn of themeWrap.querySelectorAll<HTMLButtonElement>(".fk-user-theme-btn")) {
-          btn.classList.toggle("is-active", btn.dataset.theme === current);
-        }
-      };
-      syncTheme();
-
-      const signoutBtn = el("button", "fk-ghost-btn");
-      signoutBtn.type = "button";
-      signoutBtn.textContent = "退出登录";
-      signoutBtn.addEventListener("click", async () => {
-        await signOut();
-        navigate("/fuckxter");
-      });
-
-      actions.append(edit, themeWrap, signoutBtn);
-      head.append(actions);
+      actions.append(edit);
+      card.append(actions);
     }
 
-    return head;
+    fragment.append(banner, card);
+    return fragment;
   }
 
   function bindPostList(
@@ -172,6 +160,7 @@ import FuckxterLayout from "../../layouts/FuckxterLayout.astro";
 
       const avatarLink = target.closest<HTMLElement>(".fk-avatar-link");
       if (avatarLink?.dataset.handle) {
+        event.preventDefault();
         navigate(`/fuckxter/user/?handle=${avatarLink.dataset.handle}`);
         return;
       }
@@ -183,7 +172,7 @@ import FuckxterLayout from "../../layouts/FuckxterLayout.astro";
       if (!post) return;
 
       if (!btn) {
-        navigate(`/fuckxter/post/?id=${post.id}`);
+        navigate(postPath(post));
         return;
       }
       const action = btn.dataset.action;
@@ -204,11 +193,12 @@ import FuckxterLayout from "../../layouts/FuckxterLayout.astro";
         const willActive = !btn.classList.contains(cls);
         btn.classList.toggle(cls, willActive);
         try {
-          const result =
-            action === "like"
-              ? await toggleLike(post.id, willActive)
-              : await toggleRepost(post.id, willActive);
-          const count = action === "like" ? result.likes : result.reposts;
+          let count: number;
+          if (action === "like") {
+            ({ likes: count } = await toggleLike(post.id, willActive));
+          } else {
+            ({ reposts: count } = await toggleRepost(post.id, willActive));
+          }
           btn.querySelector<HTMLElement>(".fk-action-count")!.textContent =
             count > 0 ? fmtCount(count) : "";
           btn.classList.toggle(cls, willActive);
@@ -222,7 +212,7 @@ import FuckxterLayout from "../../layouts/FuckxterLayout.astro";
       if (action === "share") {
         try {
           await navigator.clipboard.writeText(
-            `${location.origin}/fuckxter/post/?id=${post.id}`,
+            `${location.origin}${postPath(post)}`,
           );
           btn.title = "已复制链接";
           setTimeout(() => (btn.title = "分享"), 1200);
@@ -285,7 +275,11 @@ import FuckxterLayout from "../../layouts/FuckxterLayout.astro";
         head.replaceChildren(
           renderUserHead(
             author
-              ? { name: author.name, handle: author.handle, verified: author.verified }
+              ? {
+                  name: author.name,
+                  handle: author.handle,
+                  verified: author.verified,
+                }
               : { name: `@${handle}`, handle },
             {},
             posts.length,
@@ -297,5 +291,5 @@ import FuckxterLayout from "../../layouts/FuckxterLayout.astro";
     });
   };
 
-  document.addEventListener("astro:page-load", mount);
+  onFuckxterPageReady(mount);
 </script>

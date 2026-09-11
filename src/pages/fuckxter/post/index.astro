@@ -4,7 +4,7 @@ import "../../../styles/fuckxter/style.css";
 import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
 ---
 
-<FuckxterLayout title="帖子详情">
+<FuckxterLayout title="详情">
   <div class="fk-app fk-subpage" data-fk-post>
     <header class="fk-topbar">
       <a class="fk-brand" href="/fuckxter" aria-label="返回 FuckXter 首页">
@@ -41,16 +41,27 @@ import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
 
 <script>
   import { navigate } from "astro:transitions/client";
-  import { getPostById } from "../../../lib/fuckxter/api";
+  import {
+    getPostByPath,
+    getPostById,
+    isSaved,
+    toggleLike,
+    toggleRepost,
+    toggleSave,
+  } from "../../../lib/fuckxter/api";
   import { getAccount } from "../../../lib/fuckxter/auth";
   import {
+    actionButton,
     authorAvatar,
     el,
     fmtCount,
+    ICONS,
     renderPostDetail,
     statusRow,
   } from "../../../lib/fuckxter/dom";
+  import { onFuckxterPageReady } from "../../../lib/fuckxter/page";
   import type { Post } from "../../../lib/fuckxter/types";
+  import { parsePostPath, postPath } from "../../../lib/fuckxter/urls";
 
   interface Comment {
     text: string;
@@ -75,14 +86,17 @@ import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
   }
 
   const fullTime = (iso: string) =>
-    new Date(iso).toLocaleString("zh-CN", { dateStyle: "long", timeStyle: "short" });
+    new Date(iso).toLocaleString("zh-CN", {
+      dateStyle: "long",
+      timeStyle: "short",
+    });
 
   function renderPostInfo(post: Post): HTMLElement {
     const box = el("div", "fk-post-info");
+    const title = el("h4", "fk-post-info-title");
+    title.textContent = "详情";
     const author = el("div", "fk-post-info-author");
-    const avatar = el("div", "fk-avatar");
-    avatar.setAttribute("style", avatarGradient(post.author.handle));
-    avatar.textContent = [...post.author.name][0] ?? "?";
+    const avatar = authorAvatar(post.author.handle, post.author.name);
     const who = el("div");
     const name = el("strong");
     name.textContent = post.author.name;
@@ -105,7 +119,105 @@ import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
     row("喜欢", fmtCount(post.stats.likes));
     if (post.media?.alt) row("媒体描述", post.media.alt);
 
-    box.append(author, rows);
+    box.append(title, author, rows);
+    return box;
+  }
+
+  function renderPostControls(post: Post): HTMLElement {
+    const box = el("section", "fk-post-controls");
+    const title = el("h4", "fk-post-controls-title");
+    title.textContent = "互动";
+
+    const actions = el("div", "fk-post-control-actions");
+    actions.append(
+      actionButton("reply", ICONS.reply, "回复", post.stats.replies),
+      actionButton("repost", ICONS.repost, "转发", post.stats.reposts),
+      actionButton("like", ICONS.heart, "喜欢", post.stats.likes),
+      actionButton("save", ICONS.bookmark, "收藏", 0),
+      actionButton("share", ICONS.share, "分享", 0),
+    );
+
+    const repostBtn = actions.querySelector<HTMLButtonElement>(
+      '[data-action="repost"]',
+    )!;
+    const likeBtn = actions.querySelector<HTMLButtonElement>(
+      '[data-action="like"]',
+    )!;
+    const saveBtn = actions.querySelector<HTMLButtonElement>(
+      '[data-action="save"]',
+    )!;
+    repostBtn.classList.toggle("is-reposted", Boolean(post.reposted));
+    likeBtn.classList.toggle("is-liked", Boolean(post.liked));
+    saveBtn.classList.toggle("is-saved", isSaved(post.id));
+
+    const setCount = (btn: HTMLButtonElement, count: number) => {
+      btn.dataset.count = String(count);
+      btn.querySelector<HTMLElement>(".fk-action-count")!.textContent =
+        count > 0 ? fmtCount(count) : "";
+    };
+
+    actions.addEventListener("click", async (event) => {
+      const btn = (event.target as HTMLElement).closest<HTMLButtonElement>(
+        ".fk-action",
+      );
+      if (!btn) return;
+      const action = btn.dataset.action;
+
+      if (action === "reply") {
+        const input = box
+          .closest<HTMLElement>(".fk-post-side")
+          ?.querySelector<HTMLTextAreaElement>(".fk-comment-input");
+        input?.scrollIntoView({ behavior: "smooth", block: "center" });
+        input?.focus();
+        return;
+      }
+
+      if (action === "save") {
+        const willSave = !btn.classList.contains("is-saved");
+        btn.classList.toggle("is-saved", willSave);
+        try {
+          await toggleSave(post, willSave);
+        } catch {
+          btn.classList.toggle("is-saved", !willSave);
+        }
+        return;
+      }
+
+      if (action === "like" || action === "repost") {
+        const activeClass = action === "like" ? "is-liked" : "is-reposted";
+        const willActive = !btn.classList.contains(activeClass);
+        const current = Number(btn.dataset.count ?? "0");
+        setCount(btn, Math.max(0, current + (willActive ? 1 : -1)));
+        btn.classList.toggle(activeClass, willActive);
+        try {
+          if (action === "like") {
+            const result = await toggleLike(post.id, willActive);
+            setCount(btn, result.likes);
+            btn.classList.toggle(activeClass, result.liked);
+          } else {
+            const result = await toggleRepost(post.id, willActive);
+            setCount(btn, result.reposts);
+            btn.classList.toggle(activeClass, result.reposted);
+          }
+        } catch {
+          setCount(btn, current);
+          btn.classList.toggle(activeClass, !willActive);
+        }
+        return;
+      }
+
+      if (action === "share") {
+        try {
+          await navigator.clipboard.writeText(
+            `${location.origin}${postPath(post)}`,
+          );
+          btn.title = "已复制链接";
+          setTimeout(() => (btn.title = "分享"), 1200);
+        } catch {}
+      }
+    });
+
+    box.append(title, actions);
     return box;
   }
 
@@ -191,29 +303,44 @@ import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
         ".fk-avatar-link",
       );
       if (avatarLink?.dataset.handle) {
+        event.preventDefault();
         navigate(`/fuckxter/user/?handle=${avatarLink.dataset.handle}`);
       }
     });
 
-    const id = new URLSearchParams(location.search).get("id") ?? "";
+    const parsedPath = parsePostPath(location.pathname);
+    const legacyId = new URLSearchParams(location.search).get("id") ?? "";
     const host = container.querySelector<HTMLElement>(
       "[data-role=post-detail]",
     )!;
     const side = container.querySelector<HTMLElement>("[data-role=post-side]")!;
 
-    void getPostById(id).then((post) => {
+    const postRequest = parsedPath
+      ? getPostByPath(parsedPath.handle, parsedPath.slug)
+      : legacyId
+        ? getPostById(legacyId)
+        : Promise.resolve(null);
+
+    void postRequest.then((post) => {
       if (!post) {
         host.replaceChildren(
           statusRow("没有找到这条帖子，可能还未加载或已失效。"),
         );
         return;
       }
+      if (!parsedPath) {
+        history.replaceState(null, "", postPath(post));
+      }
       document.title = `${post.author.name}：${post.text.slice(0, 30)} | MoAEIOU`;
       host.replaceChildren(renderPostDetail(post));
-      side.replaceChildren(renderPostInfo(post), renderComments(post.id));
+      side.replaceChildren(
+        renderPostInfo(post),
+        renderPostControls(post),
+        renderComments(post.id),
+      );
       side.hidden = false;
     });
   };
 
-  document.addEventListener("astro:page-load", mount);
+  onFuckxterPageReady(mount);
 </script>

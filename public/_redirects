@@ -1,0 +1,15 @@
+/fuckxter/settings/profile /fuckxter/settings/profile/index.html 200
+/fuckxter/settings/profile/ /fuckxter/settings/profile/index.html 200
+/fuckxter/settings/security /fuckxter/settings/security/index.html 200
+/fuckxter/settings/security/ /fuckxter/settings/security/index.html 200
+/fuckxter/settings/saved /fuckxter/settings/saved/index.html 200
+/fuckxter/settings/saved/ /fuckxter/settings/saved/index.html 200
+/fuckxter/settings/storage /fuckxter/settings/storage/index.html 200
+/fuckxter/settings/storage/ /fuckxter/settings/storage/index.html 200
+/fuckxter/settings /fuckxter/settings/index.html 200
+/fuckxter/settings/ /fuckxter/settings/index.html 200
+/fuckxter/user /fuckxter/user/index.html 200
+/fuckxter/user/ /fuckxter/user/index.html 200
+/fuckxter/post /fuckxter/post/index.html 200
+/fuckxter/post/ /fuckxter/post/index.html 200
+/fuckxter/:handle/:slug /fuckxter/post/index.html 200

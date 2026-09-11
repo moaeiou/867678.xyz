@@ -1,8 +1,8 @@
 import { CURRENT_USER, timelineFor } from "./mock";
+import { postSlug } from "./urls";
 import type {
   FeedPage,
   FeedTab,
-  FeedUser,
   LikeResult,
   Post,
   RepostResult,
@@ -38,10 +38,6 @@ function withInteractions(post: Post): Post {
 function poolFor(tab: FeedTab): Post[] {
   const pool = timelineFor(tab).map(withInteractions);
   return [...createdPosts.map(withInteractions), ...pool];
-}
-
-export function getCurrentUser(): FeedUser {
-  return CURRENT_USER;
 }
 
 export async function getTimeline(
@@ -122,6 +118,26 @@ export async function getPostById(id: string): Promise<Post | null> {
   const post =
     poolFor("foryou").find((p) => p.id === id) ??
     readSaved().find((p) => p.id === id) ??
+    null;
+  return delay(post, 120);
+}
+
+export async function getPostByPath(
+  handle: string,
+  slug: string,
+): Promise<Post | null> {
+  const targetHandle = handle.toLowerCase();
+  const post =
+    poolFor("foryou").find(
+      (item) =>
+        item.author.handle.toLowerCase() === targetHandle &&
+        postSlug(item) === slug.toLowerCase(),
+    ) ??
+    readSaved().find(
+      (item) =>
+        item.author.handle.toLowerCase() === targetHandle &&
+        postSlug(item) === slug.toLowerCase(),
+    ) ??
     null;
   return delay(post, 120);
 }

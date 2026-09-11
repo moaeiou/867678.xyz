@@ -44,13 +44,16 @@ export interface S3Config {
 const ACCOUNT_KEY = "fk-account";
 const S3_KEY = "fk-s3-config";
 const NETWORK_DELAY_MS = 350;
+const RESERVED_HANDLES = new Set(["user", "post", "settings", "api", "assets"]);
 
 function delay<T>(value: T, ms = NETWORK_DELAY_MS): Promise<T> {
   return new Promise((resolve) => setTimeout(() => resolve(value), ms));
 }
 
-const obscure = (password: string): string =>
-  btoa(unescape(encodeURIComponent(password)));
+const obscure = (password: string): string => {
+  const bytes = new TextEncoder().encode(password);
+  return btoa(String.fromCharCode(...bytes));
+};
 
 function readAccount(): Account | null {
   try {
@@ -112,6 +115,8 @@ export async function signUp(input: {
   const handle = input.handle.trim().replace(/^@/, "").toLowerCase();
   if (!/^[a-z0-9_]{2,20}$/.test(handle))
     throw new Error("用户名需为 2~20 位字母、数字或下划线");
+  if (RESERVED_HANDLES.has(handle))
+    throw new Error("该用户名为系统保留名称，请换一个");
   const account: Account = {
     profile: {
       name: input.name.trim() || handle,

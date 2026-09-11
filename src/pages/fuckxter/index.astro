@@ -117,9 +117,9 @@ import FuckxterLayout from "../../layouts/FuckxterLayout.astro";
               type="button"
               class="fk-menu-item"
               role="menuitem"
-              data-account-open="settings"
+              data-account-open="profile"
             >
-              账号设置
+              个人资料
             </button>
           </div>
 
@@ -132,7 +132,7 @@ import FuckxterLayout from "../../layouts/FuckxterLayout.astro";
               aria-haspopup="menu"
               data-account-open="theme"
             >
-              主题外观
+              主题切换
               <span class="fk-menu-arrow" aria-hidden="true">▸</span>
             </button>
 
@@ -340,13 +340,13 @@ import FuckxterLayout from "../../layouts/FuckxterLayout.astro";
       </button>
     </div>
   </div>
-
-  </FuckxterLayout>
+</FuckxterLayout>
 
 <script>
   import { mountFuckxterBySelector } from "../../lib/fuckxter/client";
+  import { onFuckxterPageReady } from "../../lib/fuckxter/page";
 
-  document.addEventListener("astro:page-load", () => {
+  onFuckxterPageReady(() => {
     mountFuckxterBySelector("[data-fuckxter]");
   });
 </script>

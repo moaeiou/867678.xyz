@@ -81,7 +81,8 @@ export function postHead(post: Post, timeMode: "relative" | "absolute") {
   const name = el("span", "fk-post-name");
   name.textContent = post.author.name;
   head.append(name);
-  if (post.author.verified) head.insertAdjacentHTML("beforeend", ICONS.verified);
+  if (post.author.verified)
+    head.insertAdjacentHTML("beforeend", ICONS.verified);
   const meta = el("span", "fk-post-meta");
   meta.textContent = `@${post.author.handle} · ${
     timeMode === "relative"
@@ -110,12 +111,14 @@ export function authorAvatar(
   handle: string,
   name: string,
   className = "fk-avatar",
-): HTMLDivElement {
-  const avatar = el("div", `${className} fk-avatar-link`);
+): HTMLAnchorElement {
+  const avatar = el("a", `${className} fk-avatar-link`);
   avatar.dataset.handle = handle;
+  avatar.href = `/fuckxter/user/?handle=${encodeURIComponent(handle)}`;
   avatar.setAttribute("style", avatarGradient(handle));
   avatar.textContent = [...name][0] ?? "?";
   avatar.title = `查看 @${handle} 的主页`;
+  avatar.setAttribute("aria-label", `查看 ${name}（@${handle}）的主页`);
   return avatar;
 }
 
@@ -152,13 +155,10 @@ export function renderPost(post: Post): HTMLElement {
 }
 
 export function renderPostDetail(post: Post): HTMLElement {
-  const article = el("article", "fk-post fk-post-detail");
+  const article = el("article", "fk-post-detail fk-post-content-only");
   article.dataset.postId = post.id;
 
-  const avatar = authorAvatar(post.author.handle, post.author.name);
-
   const body = el("div", "fk-post-body");
-  body.append(postHead(post, "absolute"));
 
   const text = el("p", "fk-post-text");
   text.textContent = post.text;
@@ -166,15 +166,7 @@ export function renderPostDetail(post: Post): HTMLElement {
 
   if (post.media) body.append(postMedia(post));
 
-  const stats = el("footer", "fk-post-detail-stats");
-  stats.textContent = [
-    `${fmtCount(post.stats.replies)} 回复`,
-    `${fmtCount(post.stats.reposts)} 转发`,
-    `${fmtCount(post.stats.likes)} 喜欢`,
-  ].join(" · ");
-  body.append(stats);
-
-  article.append(avatar, body);
+  article.append(body);
   return article;
 }
 
