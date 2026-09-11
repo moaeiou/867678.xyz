@@ -1,0 +1,301 @@
+---
+import "../../styles/fuckxter/style.css";
+
+import FuckxterLayout from "../../layouts/FuckxterLayout.astro";
+---
+
+<FuckxterLayout title="个人主页">
+  <div class="fk-app fk-subpage" data-fk-user>
+    <header class="fk-topbar">
+      <a class="fk-brand" href="/fuckxter" aria-label="返回 FuckXter 首页">
+        <img
+          class="fk-logo-img fk-logo-light"
+          src="/FuckXter.avif"
+          alt="FuckXter"
+          width="499"
+          height="128"
+          decoding="async"
+        />
+        <img
+          class="fk-logo-img fk-logo-dark"
+          src="/FuckXter_BK.avif"
+          alt="FuckXter"
+          width="515"
+          height="128"
+          decoding="async"
+        />
+      </a>
+      <button type="button" class="fk-back-btn" data-role="back">← 返回</button>
+    </header>
+
+    <div class="fk-user-main">
+      <div class="fk-user-inner">
+        <section class="fk-user-head" data-role="user-head" aria-label="用户资料">
+          <p class="fk-status">加载中…</p>
+        </section>
+        <section class="fk-user-posts" data-role="user-posts" aria-label="该用户的帖子">
+        </section>
+      </div>
+    </div>
+  </div>
+</FuckxterLayout>
+
+<script>
+  import { navigate } from "astro:transitions/client";
+  import { getPostsByUser, toggleLike, toggleRepost, toggleSave } from "../../lib/fuckxter/api";
+  import { getAccount, signOut, type Account } from "../../lib/fuckxter/auth";
+  import {
+    authorAvatar,
+    avatarGradient,
+    el,
+    fmtCount,
+    ICONS,
+    renderPost,
+    statusRow,
+  } from "../../lib/fuckxter/dom";
+  import type { Post } from "../../lib/fuckxter/types";
+
+  const fullTime = (iso: string) =>
+    new Date(iso).toLocaleString("zh-CN", { dateStyle: "long" });
+
+  function applyThemeChoice(mode: string) {
+    localStorage.setItem("theme", mode);
+    const dark =
+      mode === "dark" ||
+      (mode === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.dataset.themeMode = mode;
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+  }
+
+  function renderUserHead(
+    info: { name: string; handle: string; verified?: boolean },
+    detail: { bio?: string; region?: string; gender?: string; birthday?: string; joined?: string },
+    postCount: number,
+    isOwn: boolean,
+  ): HTMLElement {
+    const head = el("section", "fk-user-head-card");
+    const banner = el("div", "fk-user-banner");
+    banner.setAttribute("style", avatarGradient(info.handle));
+
+    const row = el("div", "fk-user-row");
+    const avatar = authorAvatar(info.handle, info.name, "fk-user-avatar");
+    avatar.title = info.name;
+
+    const who = el("div", "fk-user-who");
+    const nameLine = el("div", "fk-user-name-line");
+    const name = el("strong");
+    name.textContent = info.name;
+    nameLine.append(name);
+    if (info.verified) nameLine.insertAdjacentHTML("beforeend", ICONS.verified);
+    const handle = el("div", "fk-user-handle");
+    handle.textContent = `@${info.handle}`;
+    const bio = el("p", "fk-user-bio");
+    bio.textContent = detail.bio || "这个人很懒，什么都没有写。";
+    who.append(nameLine, handle, bio);
+    row.append(avatar, who);
+
+    const meta = el("div", "fk-user-meta");
+    const chip = (label: string, value: string) => {
+      if (!value) return;
+      const span = el("span", "fk-user-chip");
+      span.textContent = `${label}：${value}`;
+      meta.append(span);
+    };
+    chip("性别", detail.gender ?? "");
+    chip("地区", detail.region ?? "");
+    chip("生日", detail.birthday ?? "");
+    if (detail.joined) chip("加入时间", fullTime(detail.joined));
+    chip("帖子", String(postCount));
+
+    head.append(banner, row, meta);
+
+    if (isOwn) {
+      const actions = el("div", "fk-user-actions");
+
+      const edit = el("button", "fk-primary-btn");
+      edit.type = "button";
+      edit.textContent = "编辑资料";
+      edit.addEventListener("click", () => navigate("/fuckxter/settings"));
+
+      const themeWrap = el("span", "fk-user-theme");
+      for (const [mode, label] of [
+        ["auto", "主题：跟随系统"],
+        ["light", "主题：浅色"],
+        ["dark", "主题：深色"],
+      ] as const) {
+        const btn = el("button", "fk-ghost-btn fk-user-theme-btn");
+        btn.type = "button";
+        btn.textContent = label;
+        btn.dataset.theme = mode;
+        btn.addEventListener("click", () => {
+          applyThemeChoice(mode);
+          syncTheme();
+        });
+        themeWrap.append(btn);
+      }
+      const syncTheme = () => {
+        const current = localStorage.getItem("theme") ?? "auto";
+        for (const btn of themeWrap.querySelectorAll<HTMLButtonElement>(".fk-user-theme-btn")) {
+          btn.classList.toggle("is-active", btn.dataset.theme === current);
+        }
+      };
+      syncTheme();
+
+      const signoutBtn = el("button", "fk-ghost-btn");
+      signoutBtn.type = "button";
+      signoutBtn.textContent = "退出登录";
+      signoutBtn.addEventListener("click", async () => {
+        await signOut();
+        navigate("/fuckxter");
+      });
+
+      actions.append(edit, themeWrap, signoutBtn);
+      head.append(actions);
+    }
+
+    return head;
+  }
+
+  function bindPostList(
+    root: HTMLElement,
+    posts: Post[],
+    onChange: () => void,
+  ) {
+    root.replaceChildren(
+      ...(posts.length === 0
+        ? [statusRow("还没有发过帖子。")]
+        : posts.map((post) => renderPost(post))),
+    );
+
+    root.addEventListener("click", async (event) => {
+      const target = event.target as HTMLElement;
+
+      const avatarLink = target.closest<HTMLElement>(".fk-avatar-link");
+      if (avatarLink?.dataset.handle) {
+        navigate(`/fuckxter/user/?handle=${avatarLink.dataset.handle}`);
+        return;
+      }
+
+      const btn = target.closest<HTMLButtonElement>(".fk-action");
+      const article = (btn ?? target).closest<HTMLElement>(".fk-post");
+      const id = article?.dataset.postId;
+      const post = posts.find((p) => p.id === id);
+      if (!post) return;
+
+      if (!btn) {
+        navigate(`/fuckxter/post/?id=${post.id}`);
+        return;
+      }
+      const action = btn.dataset.action;
+
+      if (action === "save") {
+        const willSave = !btn.classList.contains("is-saved");
+        btn.classList.toggle("is-saved", willSave);
+        try {
+          await toggleSave(post, willSave);
+        } catch {
+          btn.classList.toggle("is-saved", !willSave);
+        }
+        return;
+      }
+
+      if (action === "like" || action === "repost") {
+        const cls = action === "like" ? "is-liked" : "is-reposted";
+        const willActive = !btn.classList.contains(cls);
+        btn.classList.toggle(cls, willActive);
+        try {
+          const result =
+            action === "like"
+              ? await toggleLike(post.id, willActive)
+              : await toggleRepost(post.id, willActive);
+          const count = action === "like" ? result.likes : result.reposts;
+          btn.querySelector<HTMLElement>(".fk-action-count")!.textContent =
+            count > 0 ? fmtCount(count) : "";
+          btn.classList.toggle(cls, willActive);
+          onChange();
+        } catch {
+          btn.classList.toggle(cls, !willActive);
+        }
+        return;
+      }
+
+      if (action === "share") {
+        try {
+          await navigator.clipboard.writeText(
+            `${location.origin}/fuckxter/post/?id=${post.id}`,
+          );
+          btn.title = "已复制链接";
+          setTimeout(() => (btn.title = "分享"), 1200);
+        } catch {}
+      }
+    });
+  }
+
+  const mount = () => {
+    const container = document.querySelector<HTMLElement>("[data-fk-user]");
+    if (!container) return;
+    if (container.dataset.fkUserMounted === "true") return;
+    container.dataset.fkUserMounted = "true";
+
+    container
+      .querySelector<HTMLButtonElement>("[data-role=back]")!
+      .addEventListener("click", () =>
+        history.length > 1 ? history.back() : (location.href = "/fuckxter"),
+      );
+
+    const head = container.querySelector<HTMLElement>("[data-role=user-head]")!;
+    const postsRoot = container.querySelector<HTMLElement>(
+      "[data-role=user-posts]",
+    )!;
+
+    const account: Account | null = getAccount();
+    const handle = (
+      new URLSearchParams(location.search).get("handle") ??
+      account?.profile.handle ??
+      ""
+    )
+      .replace(/^@/, "")
+      .toLowerCase();
+    if (!handle) {
+      navigate("/fuckxter");
+      return;
+    }
+
+    const isOwn = account?.profile.handle === handle;
+
+    void getPostsByUser(handle).then((posts) => {
+      document.title = `@${handle} | MoAEIOU`;
+      if (isOwn && account) {
+        head.replaceChildren(
+          renderUserHead(
+            { name: account.profile.name, handle: account.profile.handle },
+            {
+              bio: account.profile.bio,
+              region: account.profile.region,
+              gender: account.profile.gender,
+              birthday: account.profile.birthday,
+              joined: account.createdAt,
+            },
+            posts.length,
+            true,
+          ),
+        );
+      } else {
+        const author = posts[0]?.author;
+        head.replaceChildren(
+          renderUserHead(
+            author
+              ? { name: author.name, handle: author.handle, verified: author.verified }
+              : { name: `@${handle}`, handle },
+            {},
+            posts.length,
+            false,
+          ),
+        );
+      }
+      bindPostList(postsRoot, posts, () => {});
+    });
+  };
+
+  document.addEventListener("astro:page-load", mount);
+</script>

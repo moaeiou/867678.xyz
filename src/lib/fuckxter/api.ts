@@ -118,6 +118,28 @@ export async function toggleSave(post: Post, saved: boolean): Promise<Post[]> {
   return delay(next.map(withInteractions));
 }
 
+export async function getPostById(id: string): Promise<Post | null> {
+  const post =
+    poolFor("foryou").find((p) => p.id === id) ??
+    readSaved().find((p) => p.id === id) ??
+    null;
+  return delay(post, 120);
+}
+
+export async function getPostsByUser(handle: string): Promise<Post[]> {
+  const target = handle.toLowerCase();
+  const seen = new Set<string>();
+  const posts: Post[] = [];
+  for (const post of [...poolFor("foryou"), ...poolFor("following")]) {
+    if (post.author.handle.toLowerCase() !== target) continue;
+    if (seen.has(post.id)) continue;
+    seen.add(post.id);
+    posts.push(post);
+  }
+  posts.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  return delay(posts, 120);
+}
+
 export async function searchPosts(query: string): Promise<SearchResult> {
   const q = query.toLowerCase();
   const posts = poolFor("foryou").filter(

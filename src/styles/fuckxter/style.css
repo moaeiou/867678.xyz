@@ -1229,3 +1229,361 @@
     padding: 0.3rem 0.4rem;
   }
 }
+
+/* 独立子页面（帖子详情 / 账号设置） */
+.fk-settings-layout {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+}
+
+.fk-settings-layout .fk-settings-nav {
+  flex: none;
+  width: 240px;
+  min-width: 240px;
+  padding: 1.4rem 0.9rem;
+  border-right: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+}
+
+.fk-settings-layout .fk-settings-body {
+  flex: 1 1 auto;
+  max-height: none;
+  overflow-y: auto;
+  padding: 1.75rem 2.5rem 2.75rem;
+}
+
+.fk-post-layout {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+}
+
+.fk-post-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 2rem 1.5rem 3rem;
+  display: flex;
+  justify-content: center;
+}
+
+.fk-post-main-inner {
+  width: min(620px, 100%);
+  align-self: flex-start;
+}
+
+.fk-post-side {
+  flex: none;
+  width: min(380px, 36vw);
+  overflow-y: auto;
+  padding: 1.5rem;
+  border-left: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.fk-post-info-author {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.fk-post-info-author .fk-avatar {
+  width: 48px;
+  height: 48px;
+  font-size: 1.2rem;
+}
+
+.fk-post-info-author strong {
+  display: block;
+  color: var(--color-text-strong);
+}
+
+.fk-post-info-author small {
+  color: var(--color-text-muted);
+}
+
+.fk-post-info-rows {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.4rem 1rem;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.fk-post-info-rows dt {
+  color: var(--color-text-muted);
+}
+
+.fk-post-info-rows dd {
+  margin: 0;
+  color: var(--color-text-strong);
+}
+
+.fk-comments {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-height: 0;
+}
+
+.fk-comments-title {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--color-text-strong);
+}
+
+.fk-comments-composer {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-end;
+}
+
+.fk-comment-input {
+  flex: 1 1 auto;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 2.4rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg);
+  color: var(--color-text-strong);
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.fk-comment-input:focus {
+  border-color: var(--color-accent);
+}
+
+.fk-comment-submit {
+  flex: none;
+}
+
+.fk-comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.fk-comment {
+  display: flex;
+  gap: 0.7rem;
+}
+
+.fk-comment .fk-avatar {
+  width: 34px;
+  height: 34px;
+  font-size: 0.85rem;
+}
+
+.fk-comment-body {
+  min-width: 0;
+}
+
+.fk-comment-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.fk-comment-head strong {
+  font-size: 0.88rem;
+  color: var(--color-text-strong);
+}
+
+.fk-comment-head time {
+  font-size: 0.76rem;
+  color: var(--color-text-muted);
+}
+
+.fk-comment-text {
+  margin: 0.2rem 0 0;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.fk-back-btn {
+  flex: none;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  color: var(--color-text);
+  font-size: 0.9rem;
+  transition:
+    background 150ms ease,
+    color 150ms ease;
+}
+
+.fk-back-btn:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-strong);
+}
+
+@media (max-width: 900px) {
+  .fk-post-layout {
+    flex-direction: column;
+  }
+
+  .fk-post-main {
+    padding: 1.25rem 0.9rem 2rem;
+  }
+
+  .fk-post-side {
+    width: 100%;
+    border-left: 0;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .fk-settings-layout {
+    flex-direction: column;
+  }
+
+  .fk-settings-layout .fk-settings-nav {
+    width: 100%;
+    min-width: 0;
+    flex-direction: row;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border-soft);
+  }
+
+  .fk-settings-layout .fk-settings-body {
+    padding: 1.25rem 1rem 2rem;
+  }
+}
+
+/* 用户主页 */
+.fk-avatar-link {
+  cursor: pointer;
+  transition: filter 150ms ease;
+}
+
+.fk-avatar-link:hover {
+  filter: brightness(1.1);
+}
+
+.fk-user-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 1rem 3rem;
+}
+
+.fk-user-inner {
+  width: min(720px, 100%);
+  margin: 0 auto;
+}
+
+.fk-user-head-card {
+  overflow: hidden;
+  margin-top: 1.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-bg-raised);
+}
+
+.fk-user-banner {
+  height: 96px;
+}
+
+.fk-user-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  padding: 0 1.5rem;
+  margin-top: -34px;
+}
+
+.fk-user-avatar {
+  width: 72px;
+  height: 72px;
+  border: 3px solid var(--color-bg-raised);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 1.8rem;
+  font-weight: 700;
+  user-select: none;
+}
+
+.fk-user-who {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-bottom: 0.35rem;
+}
+
+.fk-user-name-line {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--color-text-strong);
+  font-size: 1.15rem;
+}
+
+.fk-user-handle {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.fk-user-bio {
+  margin: 0.5rem 0 0;
+  color: var(--color-text);
+  font-size: 0.92rem;
+}
+
+.fk-user-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.9rem 1.5rem 1.2rem;
+}
+
+.fk-user-chip {
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border-soft);
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+.fk-user-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 1.5rem 1.4rem;
+}
+
+.fk-user-theme {
+  display: inline-flex;
+  gap: 0.5rem;
+}
+
+.fk-user-theme-btn.is-active {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.fk-user-posts {
+  margin-top: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.fk-user-posts .fk-post {
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-bg-raised);
+}

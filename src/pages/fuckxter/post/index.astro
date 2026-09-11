@@ -1,0 +1,219 @@
+---
+import "../../../styles/fuckxter/style.css";
+
+import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
+---
+
+<FuckxterLayout title="帖子详情">
+  <div class="fk-app fk-subpage" data-fk-post>
+    <header class="fk-topbar">
+      <a class="fk-brand" href="/fuckxter" aria-label="返回 FuckXter 首页">
+        <img
+          class="fk-logo-img fk-logo-light"
+          src="/FuckXter.avif"
+          alt="FuckXter"
+          width="499"
+          height="128"
+          decoding="async"
+        />
+        <img
+          class="fk-logo-img fk-logo-dark"
+          src="/FuckXter_BK.avif"
+          alt="FuckXter"
+          width="515"
+          height="128"
+          decoding="async"
+        />
+      </a>
+      <button type="button" class="fk-back-btn" data-role="back">← 返回</button>
+    </header>
+
+    <div class="fk-post-layout">
+      <div class="fk-post-main">
+        <div class="fk-post-main-inner" data-role="post-detail">
+          <p class="fk-status">加载中…</p>
+        </div>
+      </div>
+      <aside class="fk-post-side" data-role="post-side" hidden></aside>
+    </div>
+  </div>
+</FuckxterLayout>
+
+<script>
+  import { navigate } from "astro:transitions/client";
+  import { getPostById } from "../../../lib/fuckxter/api";
+  import { getAccount } from "../../../lib/fuckxter/auth";
+  import {
+    authorAvatar,
+    el,
+    fmtCount,
+    renderPostDetail,
+    statusRow,
+  } from "../../../lib/fuckxter/dom";
+  import type { Post } from "../../../lib/fuckxter/types";
+
+  interface Comment {
+    text: string;
+    at: string;
+    name: string;
+    handle: string;
+  }
+
+  const commentsKey = (id: string) => `fk-comments:${id}`;
+
+  function readComments(id: string): Comment[] {
+    try {
+      const raw = localStorage.getItem(commentsKey(id));
+      return raw ? (JSON.parse(raw) as Comment[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function writeComments(id: string, comments: Comment[]) {
+    localStorage.setItem(commentsKey(id), JSON.stringify(comments));
+  }
+
+  const fullTime = (iso: string) =>
+    new Date(iso).toLocaleString("zh-CN", { dateStyle: "long", timeStyle: "short" });
+
+  function renderPostInfo(post: Post): HTMLElement {
+    const box = el("div", "fk-post-info");
+    const author = el("div", "fk-post-info-author");
+    const avatar = el("div", "fk-avatar");
+    avatar.setAttribute("style", avatarGradient(post.author.handle));
+    avatar.textContent = [...post.author.name][0] ?? "?";
+    const who = el("div");
+    const name = el("strong");
+    name.textContent = post.author.name;
+    const handle = el("small");
+    handle.textContent = `@${post.author.handle}`;
+    who.append(name, handle);
+    author.append(avatar, who);
+
+    const rows = el("dl", "fk-post-info-rows");
+    const row = (label: string, value: string) => {
+      const dt = el("dt");
+      dt.textContent = label;
+      const dd = el("dd");
+      dd.textContent = value;
+      rows.append(dt, dd);
+    };
+    row("发布时间", fullTime(post.createdAt));
+    row("回复", fmtCount(post.stats.replies));
+    row("转发", fmtCount(post.stats.reposts));
+    row("喜欢", fmtCount(post.stats.likes));
+    if (post.media?.alt) row("媒体描述", post.media.alt);
+
+    box.append(author, rows);
+    return box;
+  }
+
+  function renderComments(postId: string): HTMLElement {
+    const box = el("div", "fk-comments");
+    const title = el("h4", "fk-comments-title");
+    title.textContent = "评论";
+    const list = el("div", "fk-comments-list");
+    const status = el("p", "fk-form-status");
+    status.setAttribute("aria-live", "polite");
+
+    const renderList = () => {
+      const comments = readComments(postId);
+      list.replaceChildren(
+        ...(comments.length === 0
+          ? [statusRow("还没有评论，来说点什么吧。")]
+          : comments.map((c) => {
+              const item = el("div", "fk-comment");
+              const avatar = authorAvatar(c.handle, c.name);
+              const body = el("div", "fk-comment-body");
+              const head = el("header", "fk-comment-head");
+              const name = el("strong");
+              name.textContent = c.name;
+              const time = el("time");
+              time.textContent = fullTime(c.at);
+              head.append(name, time);
+              const text = el("p", "fk-comment-text");
+              text.textContent = c.text;
+              body.append(head, text);
+              item.append(avatar, body);
+              return item;
+            })),
+      );
+    };
+
+    const me = getAccount();
+    const input = el("textarea", "fk-comment-input") as HTMLTextAreaElement;
+    input.rows = 2;
+    input.placeholder = me ? "发布你的评论" : "登录后才能评论";
+    input.disabled = !me;
+    const submit = el("button", "fk-primary-btn fk-comment-submit");
+    submit.type = "button";
+    submit.textContent = "评论";
+    submit.disabled = !me;
+    submit.addEventListener("click", () => {
+      const text = input.value.trim();
+      if (!text || !me) return;
+      const comments = readComments(postId);
+      comments.push({
+        text,
+        at: new Date().toISOString(),
+        name: me.profile.name,
+        handle: me.profile.handle,
+      });
+      writeComments(postId, comments);
+      input.value = "";
+      renderList();
+      status.textContent = "";
+    });
+
+    const composer = el("div", "fk-comments-composer");
+    composer.append(input, submit);
+    box.append(title, composer, status, list);
+    renderList();
+    return box;
+  }
+
+  const mount = () => {
+    const container = document.querySelector<HTMLElement>("[data-fk-post]");
+    if (!container) return;
+    if (container.dataset.fkPostMounted === "true") return;
+    container.dataset.fkPostMounted = "true";
+
+    container
+      .querySelector<HTMLButtonElement>("[data-role=back]")!
+      .addEventListener("click", () =>
+        history.length > 1 ? history.back() : (location.href = "/fuckxter"),
+      );
+
+    const layout = container.querySelector<HTMLElement>(".fk-post-layout")!;
+    layout.addEventListener("click", (event) => {
+      const avatarLink = (event.target as HTMLElement).closest<HTMLElement>(
+        ".fk-avatar-link",
+      );
+      if (avatarLink?.dataset.handle) {
+        navigate(`/fuckxter/user/?handle=${avatarLink.dataset.handle}`);
+      }
+    });
+
+    const id = new URLSearchParams(location.search).get("id") ?? "";
+    const host = container.querySelector<HTMLElement>(
+      "[data-role=post-detail]",
+    )!;
+    const side = container.querySelector<HTMLElement>("[data-role=post-side]")!;
+
+    void getPostById(id).then((post) => {
+      if (!post) {
+        host.replaceChildren(
+          statusRow("没有找到这条帖子，可能还未加载或已失效。"),
+        );
+        return;
+      }
+      document.title = `${post.author.name}：${post.text.slice(0, 30)} | MoAEIOU`;
+      host.replaceChildren(renderPostDetail(post));
+      side.replaceChildren(renderPostInfo(post), renderComments(post.id));
+      side.hidden = false;
+    });
+  };
+
+  document.addEventListener("astro:page-load", mount);
+</script>
