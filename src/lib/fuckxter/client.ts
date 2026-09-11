@@ -997,22 +997,20 @@ function mountFuckxter(container: HTMLElement): void {
     profileForm.querySelector<HTMLElement>(".fk-form-status")!;
   const genderSelect =
     profileForm.querySelector<HTMLSelectElement>("[name=gender]")!;
-  const genderCustomField = profileForm.querySelector<HTMLElement>(
-    "[data-role=gender-custom-field]",
-  )!;
   const GENDER_PRESETS = ["男", "女", "跨性别男", "跨性别女"];
+
+  const genderCustomInput = profileForm.querySelector<HTMLInputElement>(
+    "[name=genderCustom]",
+  )!;
 
   const syncGenderField = (gender: string) => {
     if (GENDER_PRESETS.includes(gender) || !gender) {
       genderSelect.value = gender;
-      genderCustomField.hidden = true;
     } else {
       genderSelect.value = "自定义";
-      genderCustomField.hidden = false;
-      profileForm.querySelector<HTMLInputElement>(
-        "[name=genderCustom]",
-      )!.value = gender;
+      genderCustomInput.value = gender;
     }
+    genderCustomInput.disabled = genderSelect.value !== "自定义";
   };
 
   const fillProfileForm = () => {
@@ -1037,11 +1035,12 @@ function mountFuckxter(container: HTMLElement): void {
   };
 
   genderSelect.addEventListener("change", () => {
-    genderCustomField.hidden = genderSelect.value !== "自定义";
-    if (!genderCustomField.hidden)
-      profileForm
-        .querySelector<HTMLInputElement>("[name=genderCustom]")!
-        .focus();
+    genderCustomInput.disabled = genderSelect.value !== "自定义";
+    if (!genderCustomInput.disabled) {
+      genderCustomInput.focus();
+    } else {
+      genderCustomInput.value = "";
+    }
   });
 
   bioInput.addEventListener("input", () => {
