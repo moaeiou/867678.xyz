@@ -1,12 +1,12 @@
-/**
- * FuckXter 前端控制器：负责渲染信息流与交互，所有数据经由 ./api 读写。
- */
 import {
   createPost,
+  getSavedPosts,
   getTimeline,
+  isSaved,
   searchPosts,
   toggleLike,
   toggleRepost,
+  toggleSave,
 } from "./api";
 import {
   autoSignUp,
@@ -31,10 +31,8 @@ import type { FeedTab, Post, SearchResult } from "./types";
 
 const MAX_CHARS = 500;
 
-/** 与 style.css 的断点保持一致：大屏 3~5 列，中屏 2 列，小屏 1 列 */
 const COLUMN_QUERIES: [string, number][] = [
-  ["(min-width: 1920px)", 5],
-  ["(min-width: 1440px)", 4],
+  ["(min-width: 2200px)", 4],
   ["(min-width: 1024px)", 3],
   ["(min-width: 700px)", 2],
 ];
@@ -55,6 +53,8 @@ const ICONS = {
     '<svg class="fk-action-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>',
   share:
     '<svg class="fk-action-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><path d="M16 6l-4-4-4 4"></path><path d="M12 2v13"></path></svg>',
+  bookmark:
+    '<svg class="fk-action-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>',
   verified:
     '<svg class="fk-verified" viewBox="0 0 24 24" aria-label="认证账号" role="img"><path fill="currentColor" d="M12 1.5l2.6 2 3.2-.4 1.2 3 3 1.2-.4 3.2 2 2.5-2 2.5.4 3.2-3 1.2-1.2 3-3.2-.4-2.6 2-2.6-2-3.2.4-1.2-3-3-1.2.4-3.2-2-2.5 2-2.5-.4-3.2 3-1.2 1.2-3 3.2.4z"></path><path class="fk-verified-check" d="M10.7 15.9l-3-3 1.3-1.3 1.7 1.7 4.3-4.3 1.3 1.3z"></path></svg>',
 };
@@ -165,10 +165,12 @@ function renderPost(post: Post): HTMLElement {
     actionButton("reply", ICONS.reply, "回复", post.stats.replies),
     actionButton("repost", ICONS.repost, "转发", post.stats.reposts),
     actionButton("like", ICONS.heart, "喜欢", post.stats.likes),
+    actionButton("save", ICONS.bookmark, "收藏", 0),
     actionButton("share", ICONS.share, "分享", 0),
   );
   if (post.reposted) actions.children[1].classList.add("is-reposted");
   if (post.liked) actions.children[2].classList.add("is-liked");
+  if (isSaved(post.id)) actions.children[3].classList.add("is-saved");
 
   body.append(actions);
   article.append(avatar, body);
@@ -226,7 +228,6 @@ function mountFuckxter(container: HTMLElement): void {
   const searchInput =
     container.querySelector<HTMLInputElement>(".fk-search-input")!;
 
-  // 发帖框头像跟随登录态：登录 / 登出后由 renderAccountUI 刷新
   const composerAvatar = container.querySelector<HTMLElement>(
     ".fk-composer .fk-avatar",
   )!;
@@ -247,12 +248,12 @@ function mountFuckxter(container: HTMLElement): void {
     search: null,
   };
 
-  // ---------- 多列瀑布流布局 ----------
-  // 帖子按「当前最矮列」分配，实现瀑布流；断点变化时整体重新分配。
   let columnsRoot: HTMLElement | null = null;
   let columns: HTMLElement[] = [];
   let activeColumnCount = 0;
   const orderedPosts: HTMLElement[] = [];
+
+  const postsById = new Map<string, Post>();
 
   const shortestColumn = (): HTMLElement => {
     let target = columns[0];
@@ -302,6 +303,7 @@ function mountFuckxter(container: HTMLElement): void {
     ensureLayout();
     const node = renderPost(post);
     orderedPosts.push(node);
+    postsById.set(post.id, post);
     shortestColumn().append(node);
     return node;
   };
@@ -311,8 +313,6 @@ function mountFuckxter(container: HTMLElement): void {
     spinner.style.visibility = busy ? "visible" : "hidden";
   };
 
-  // 哨兵仍处在触发区（rootMargin 与 IntersectionObserver 一致）就继续补页，
-  // 否则首屏内容不满一屏时不会再收到交叉事件，信息流会停在第一页。
   const sentinelReached = (): boolean => {
     const rect = sentinel.getBoundingClientRect();
     const view = scroller.getBoundingClientRect();
@@ -335,16 +335,14 @@ function mountFuckxter(container: HTMLElement): void {
 
   const loadPage = async (replace: boolean) => {
     if (state.search !== null) return;
-    // 整页替换（切页签/搜索返回/重载）允许打断在途请求：递增 seq 使其过期，
-    // 旧响应到达时会被丢弃。否则加载中切页签会被 early-return 挡住，
-    // 渲染出旧页签的数据（或让新页签永远等不到内容）。
+
     if (!replace && (state.loading || state.done)) return;
     const seq = ++state.seq;
     state.loading = true;
     setSentinelBusy(true);
     try {
       const page = await getTimeline(state.tab, replace ? null : state.cursor);
-      if (seq !== state.seq) return; // 用户已切换视图，丢弃过期响应
+      if (seq !== state.seq) return;
       if (replace) resetFeed();
       for (const post of page.posts) addPost(post);
       state.cursor = page.nextCursor;
@@ -365,7 +363,6 @@ function mountFuckxter(container: HTMLElement): void {
     }
   };
 
-  // ---------- 搜索 ----------
   const exitSearch = () => {
     state.search = null;
     state.done = false;
@@ -383,7 +380,7 @@ function mountFuckxter(container: HTMLElement): void {
     }
     const seq = ++state.seq;
     state.search = query;
-    state.done = true; // 搜索结果不分页
+    state.done = true;
     state.loading = true;
     composer.hidden = true;
     setSentinelBusy(true);
@@ -409,7 +406,6 @@ function mountFuckxter(container: HTMLElement): void {
     doSearch(searchInput.value);
   });
 
-  // ---------- 页签切换 ----------
   for (const tab of tabs) {
     tab.addEventListener("click", () => {
       const next = tab.dataset.tab as FeedTab | undefined;
@@ -428,7 +424,6 @@ function mountFuckxter(container: HTMLElement): void {
     });
   }
 
-  // ---------- 无限滚动 ----------
   const observer = new IntersectionObserver(
     (entries) => {
       if (entries.some((e) => e.isIntersecting)) loadPage(false);
@@ -437,12 +432,11 @@ function mountFuckxter(container: HTMLElement): void {
   );
   observer.observe(sentinel);
 
-  // ---------- 帖子操作（事件委托） ----------
   const flashCount = (btn: HTMLElement) => {
     const counter = btn.querySelector<HTMLElement>(".fk-action-count");
     if (!counter) return;
     counter.classList.remove("is-flash");
-    void counter.offsetWidth; // 重启动画
+    void counter.offsetWidth;
     counter.classList.add("is-flash");
   };
 
@@ -452,14 +446,32 @@ function mountFuckxter(container: HTMLElement): void {
   };
 
   feed.addEventListener("click", async (event) => {
-    const btn = (event.target as HTMLElement).closest<HTMLButtonElement>(
-      ".fk-action",
-    );
-    if (!btn) return;
+    const target = event.target as HTMLElement;
+    const btn = target.closest<HTMLButtonElement>(".fk-action");
+    if (!btn) {
+      const article = target.closest<HTMLElement>(".fk-post");
+      const id = article?.dataset.postId;
+      const post = id ? postsById.get(id) : undefined;
+      if (post) openPostModal(post);
+      return;
+    }
     const article = btn.closest<HTMLElement>(".fk-post");
     const id = article?.dataset.postId;
-    if (!id) return;
+    const post = id ? postsById.get(id) : undefined;
+    if (!id || !post) return;
     const action = btn.dataset.action;
+
+    if (action === "save") {
+      const willSave = !btn.classList.contains("is-saved");
+      btn.classList.toggle("is-saved", willSave);
+      try {
+        await toggleSave(post, willSave);
+        renderSavedList();
+      } catch {
+        btn.classList.toggle("is-saved", !willSave);
+      }
+      return;
+    }
 
     if (action === "like" || action === "repost") {
       const active = action === "like" ? "is-liked" : "is-reposted";
@@ -488,7 +500,6 @@ function mountFuckxter(container: HTMLElement): void {
         setCount(btn, serverCount);
         btn.classList.toggle(active, serverActive);
       } catch {
-        // 乐观更新失败则回滚
         btn.classList.toggle(active, !willActive);
         btn.dataset.count = String(current);
         setCount(btn, current);
@@ -517,13 +528,10 @@ function mountFuckxter(container: HTMLElement): void {
         setTimeout(() => {
           btn.title = "分享";
         }, 1200);
-      } catch {
-        /* 剪贴板不可用时静默忽略 */
-      }
+      } catch {}
     }
   });
 
-  // ---------- 发帖框 ----------
   const syncComposer = () => {
     const len = [...composerInput.value].length;
     charCount.textContent = `${len} / ${MAX_CHARS}`;
@@ -555,7 +563,7 @@ function mountFuckxter(container: HTMLElement): void {
       composerInput.value = "";
       composerInput.style.height = "";
       syncComposer();
-      // 新帖会出现在池顶，直接整页重拉，避免光标错位导致的重复渲染
+
       scroller.scrollTo({ top: 0 });
       loadPage(true);
     } catch {
@@ -569,7 +577,6 @@ function mountFuckxter(container: HTMLElement): void {
     composerBtn.textContent = label;
   });
 
-  // ---------- 账号菜单（登录态 / 三级主题菜单 / 弹窗入口） ----------
   const accountWrap = container.querySelector<HTMLElement>(".fk-account")!;
   const accountBtn = accountWrap.querySelector<HTMLButtonElement>(
     "[data-role=account-btn]",
@@ -602,12 +609,17 @@ function mountFuckxter(container: HTMLElement): void {
     "[data-role=theme-submenu]",
   )!;
 
-  // 弹窗标记在 .fk-app 之外，从 document 取
   const authModal = document.querySelector<HTMLElement>(
     "[data-role=auth-modal]",
   )!;
   const settingsModal = document.querySelector<HTMLElement>(
     "[data-role=settings-modal]",
+  )!;
+  const postModal = document.querySelector<HTMLElement>(
+    "[data-role=post-modal]",
+  )!;
+  const postDialogBody = postModal.querySelector<HTMLElement>(
+    "[data-role=post-dialog-body]",
   )!;
 
   let account: Account | null = getAccount();
@@ -695,7 +707,6 @@ function mountFuckxter(container: HTMLElement): void {
     }
   });
 
-  // 第三级：主题外观子菜单
   themeTrigger.addEventListener("click", () => {
     const willOpen = themeSubmenu.hidden;
     themeSubmenu.hidden = !willOpen;
@@ -730,7 +741,7 @@ function mountFuckxter(container: HTMLElement): void {
         closeAccountMenu();
         openSettingsModal("storage");
       }
-      return; // theme 由上面的子菜单处理器处理，不关闭菜单
+      return;
     }
     const action = target.closest<HTMLButtonElement>("[data-account-action]")
       ?.dataset.accountAction;
@@ -743,11 +754,11 @@ function mountFuckxter(container: HTMLElement): void {
     }
   });
 
-  // ---------- 弹窗通用 ----------
   const onModalKeydown = (event: KeyboardEvent) => {
     if (event.key !== "Escape") return;
     if (!settingsModal.hidden) closeModal(settingsModal);
     else if (!authModal.hidden) closeModal(authModal);
+    else if (!postModal.hidden) closeModal(postModal);
   };
   let modalKeysBound = false;
   const bindModalKeys = () => {
@@ -756,7 +767,13 @@ function mountFuckxter(container: HTMLElement): void {
     document.addEventListener("keydown", onModalKeydown, true);
   };
   const unbindModalKeys = () => {
-    if (!modalKeysBound || !authModal.hidden || !settingsModal.hidden) return;
+    if (
+      !modalKeysBound ||
+      !authModal.hidden ||
+      !settingsModal.hidden ||
+      !postModal.hidden
+    )
+      return;
     modalKeysBound = false;
     document.removeEventListener("keydown", onModalKeydown, true);
   };
@@ -772,7 +789,60 @@ function mountFuckxter(container: HTMLElement): void {
     if (el) el.textContent = message;
   };
 
-  // ---------- 登录 / 注册弹窗 ----------
+  const openPostModal = (post: Post) => {
+    const detail = el("article", "fk-post fk-post-detail");
+    const avatar = el("div", "fk-avatar");
+    avatar.setAttribute("style", avatarGradient(post.author.handle));
+    avatar.textContent = [...post.author.name][0] ?? "?";
+    avatar.title = `@${post.author.handle}`;
+
+    const body = el("div", "fk-post-body");
+    const head = el("header", "fk-post-head");
+    const name = el("span", "fk-post-name");
+    name.textContent = post.author.name;
+    head.append(name);
+    if (post.author.verified)
+      head.insertAdjacentHTML("beforeend", ICONS.verified);
+    const meta = el("span", "fk-post-meta");
+    meta.textContent = `@${post.author.handle} · ${new Date(post.createdAt).toLocaleString("zh-CN")}`;
+    head.append(meta);
+
+    const text = el("p", "fk-post-text");
+    text.textContent = post.text;
+
+    body.append(head, text);
+    if (post.media) {
+      const media = el("div", "fk-media");
+      media.setAttribute(
+        "style",
+        `background-image: linear-gradient(135deg, ${post.media.gradient[0]}, ${post.media.gradient[1]})`,
+      );
+      media.setAttribute("role", "img");
+      media.setAttribute("aria-label", post.media.alt);
+      media.textContent = post.media.emoji;
+      body.append(media);
+    }
+
+    const stats = el("footer", "fk-post-detail-stats");
+    stats.textContent = [
+      `${fmtCount(post.stats.replies)} 回复`,
+      `${fmtCount(post.stats.reposts)} 转发`,
+      `${fmtCount(post.stats.likes)} 喜欢`,
+    ].join(" · ");
+
+    body.append(stats);
+    detail.append(avatar, body);
+    postDialogBody.replaceChildren(detail);
+    openModal(postModal);
+  };
+
+  postModal
+    .querySelector<HTMLButtonElement>("[data-role=post-close]")!
+    .addEventListener("click", () => closeModal(postModal));
+  postModal
+    .querySelector<HTMLElement>("[data-role=post-backdrop]")!
+    .addEventListener("click", () => closeModal(postModal));
+
   const signinForm = authModal.querySelector<HTMLFormElement>(
     "[data-role=signin-form]",
   )!;
@@ -829,7 +899,7 @@ function mountFuckxter(container: HTMLElement): void {
     setStatus(signinStatus, "登录中…");
     try {
       account = await signIn({
-        email: String(data.get("email") ?? ""),
+        identifier: String(data.get("identifier") ?? ""),
         password: String(data.get("password") ?? ""),
       });
       renderAccountUI();
@@ -853,6 +923,7 @@ function mountFuckxter(container: HTMLElement): void {
     try {
       account = await signUp({
         name: String(data.get("name") ?? ""),
+        handle: String(data.get("handle") ?? ""),
         email: String(data.get("email") ?? ""),
         password: String(data.get("password") ?? ""),
       });
@@ -868,7 +939,6 @@ function mountFuckxter(container: HTMLElement): void {
     }
   });
 
-  // ---------- 账号设置弹窗（个人资料 / 安全 / S3） ----------
   const settingsPanes = [
     ...settingsModal.querySelectorAll<HTMLElement>("[data-settings-pane]"),
   ];
@@ -876,29 +946,35 @@ function mountFuckxter(container: HTMLElement): void {
     ...settingsModal.querySelectorAll<HTMLButtonElement>("[data-settings-tab]"),
   ];
 
-  const setSettingsTab = (tab: "profile" | "security" | "storage") => {
+  const setSettingsTab = (
+    tab: "profile" | "security" | "saved" | "storage",
+  ) => {
     for (const btn of settingsNavBtns) {
       btn.classList.toggle("is-active", btn.dataset.settingsTab === tab);
     }
     for (const pane of settingsPanes) {
       pane.hidden = pane.dataset.settingsPane !== tab;
     }
+    if (tab === "saved") renderSavedList();
   };
 
-  const openSettingsModal = (tab: "profile" | "security" | "storage") => {
+  const openSettingsModal = (
+    tab: "profile" | "security" | "saved" | "storage",
+  ) => {
     if (!account) return;
     setSettingsTab(tab);
     fillProfileForm();
     fillEmailHint();
     renderTfa();
     fillS3Form();
+    renderSavedList();
     openModal(settingsModal);
   };
 
   for (const btn of settingsNavBtns) {
     btn.addEventListener("click", () =>
       setSettingsTab(
-        btn.dataset.settingsTab as "profile" | "security" | "storage",
+        btn.dataset.settingsTab as "profile" | "security" | "saved" | "storage",
       ),
     );
   }
@@ -909,7 +985,6 @@ function mountFuckxter(container: HTMLElement): void {
     .querySelector<HTMLElement>("[data-role=settings-backdrop]")!
     .addEventListener("click", () => closeModal(settingsModal));
 
-  // 个人资料
   const profileForm = settingsModal.querySelector<HTMLFormElement>(
     "[data-role=profile-form]",
   )!;
@@ -920,6 +995,25 @@ function mountFuckxter(container: HTMLElement): void {
   )!;
   const profileStatus =
     profileForm.querySelector<HTMLElement>(".fk-form-status")!;
+  const genderSelect =
+    profileForm.querySelector<HTMLSelectElement>("[name=gender]")!;
+  const genderCustomField = profileForm.querySelector<HTMLElement>(
+    "[data-role=gender-custom-field]",
+  )!;
+  const GENDER_PRESETS = ["男", "女", "跨性别男", "跨性别女"];
+
+  const syncGenderField = (gender: string) => {
+    if (GENDER_PRESETS.includes(gender) || !gender) {
+      genderSelect.value = gender;
+      genderCustomField.hidden = true;
+    } else {
+      genderSelect.value = "自定义";
+      genderCustomField.hidden = false;
+      profileForm.querySelector<HTMLInputElement>(
+        "[name=genderCustom]",
+      )!.value = gender;
+    }
+  };
 
   const fillProfileForm = () => {
     if (!account) return;
@@ -929,6 +1023,11 @@ function mountFuckxter(container: HTMLElement): void {
       account.profile.handle;
     bioInput.value = account.profile.bio;
     bioCount.textContent = `${[...account.profile.bio].length} / 200`;
+    syncGenderField(account.profile.gender);
+    profileForm.querySelector<HTMLInputElement>("[name=region]")!.value =
+      account.profile.region;
+    profileForm.querySelector<HTMLInputElement>("[name=birthday]")!.value =
+      account.profile.birthday;
     setStatus(profileStatus, "");
     const avatar = settingsModal.querySelector<HTMLElement>(
       "[data-role=profile-avatar]",
@@ -936,6 +1035,14 @@ function mountFuckxter(container: HTMLElement): void {
     avatar.setAttribute("style", avatarGradient(account.profile.handle));
     avatar.textContent = [...account.profile.name][0] ?? "?";
   };
+
+  genderSelect.addEventListener("change", () => {
+    genderCustomField.hidden = genderSelect.value !== "自定义";
+    if (!genderCustomField.hidden)
+      profileForm
+        .querySelector<HTMLInputElement>("[name=genderCustom]")!
+        .focus();
+  });
 
   bioInput.addEventListener("input", () => {
     bioCount.textContent = `${[...bioInput.value].length} / 200`;
@@ -945,6 +1052,10 @@ function mountFuckxter(container: HTMLElement): void {
     event.preventDefault();
     if (!account) return;
     const data = new FormData(profileForm);
+    const gender =
+      genderSelect.value === "自定义"
+        ? String(data.get("genderCustom") ?? "").trim() || "自定义"
+        : genderSelect.value;
     const btn =
       profileForm.querySelector<HTMLButtonElement>(".fk-primary-btn")!;
     btn.disabled = true;
@@ -952,6 +1063,9 @@ function mountFuckxter(container: HTMLElement): void {
       account = await updateProfile({
         name: String(data.get("name") ?? ""),
         bio: String(data.get("bio") ?? ""),
+        region: String(data.get("region") ?? ""),
+        gender,
+        birthday: String(data.get("birthday") ?? ""),
       });
       renderAccountUI();
       fillProfileForm();
@@ -967,7 +1081,66 @@ function mountFuckxter(container: HTMLElement): void {
     }
   });
 
-  // 更改邮箱
+  const savedList = settingsModal.querySelector<HTMLElement>(
+    "[data-role=saved-list]",
+  )!;
+  const savedEmpty = settingsModal.querySelector<HTMLElement>(
+    "[data-role=saved-empty]",
+  )!;
+
+  const renderSavedList = () => {
+    const posts = getSavedPosts();
+    savedEmpty.hidden = posts.length > 0;
+    savedList.replaceChildren(
+      ...posts.map((post) => {
+        const item = el("article", "fk-post fk-saved-item");
+        item.dataset.postId = post.id;
+        const avatar = el("div", "fk-avatar");
+        avatar.setAttribute("style", avatarGradient(post.author.handle));
+        avatar.textContent = [...post.author.name][0] ?? "?";
+        const body = el("div", "fk-post-body");
+        const head = el("header", "fk-post-head");
+        const name = el("span", "fk-post-name");
+        name.textContent = post.author.name;
+        const meta = el("span", "fk-post-meta");
+        meta.textContent = `@${post.author.handle} · ${relativeTime(post.createdAt)}`;
+        head.append(name, meta);
+        const text = el("p", "fk-post-text");
+        text.textContent = post.text;
+        const remove = el("button", "fk-saved-remove");
+        remove.type = "button";
+        remove.textContent = "取消收藏";
+        remove.title = "取消收藏";
+        body.append(head, text, remove);
+        item.append(avatar, body);
+        return item;
+      }),
+    );
+    for (const post of posts) postsById.set(post.id, post);
+  };
+
+  savedList.addEventListener("click", async (event) => {
+    const target = event.target as HTMLElement;
+    const item = target.closest<HTMLElement>(".fk-saved-item");
+    if (!item) return;
+    const post = postsById.get(item.dataset.postId ?? "");
+    if (!post) return;
+    if (target.closest<HTMLButtonElement>(".fk-saved-remove")) {
+      try {
+        await toggleSave(post, false);
+        renderSavedList();
+        feed
+          .querySelector<HTMLElement>(
+            `.fk-post[data-post-id="${CSS.escape(post.id)}"] .fk-action[data-action="save"]`,
+          )
+          ?.classList.remove("is-saved");
+      } catch {}
+      return;
+    }
+    closeModal(settingsModal);
+    openPostModal(post);
+  });
+
   const emailForm = settingsModal.querySelector<HTMLFormElement>(
     "[data-role=email-form]",
   )!;
@@ -1006,7 +1179,6 @@ function mountFuckxter(container: HTMLElement): void {
     }
   });
 
-  // 更改密码
   const passwordForm = settingsModal.querySelector<HTMLFormElement>(
     "[data-role=password-form]",
   )!;
@@ -1043,7 +1215,6 @@ function mountFuckxter(container: HTMLElement): void {
     }
   });
 
-  // 两步验证 + 恢复密钥
   const tfaStatus = settingsModal.querySelector<HTMLElement>(
     "[data-role=tfa-status]",
   )!;
@@ -1162,12 +1333,9 @@ function mountFuckxter(container: HTMLElement): void {
         setTimeout(() => {
           btn.textContent = "复制全部";
         }, 1500);
-      } catch {
-        /* 剪贴板不可用时静默忽略 */
-      }
+      } catch {}
     });
 
-  // S3 兼容存储
   const s3Form = settingsModal.querySelector<HTMLFormElement>(
     "[data-role=s3-form]",
   )!;
@@ -1236,14 +1404,12 @@ function mountFuckxter(container: HTMLElement): void {
 
   renderAccountUI();
 
-  // 首次访问自动注册访客账号；主动退出登录的本机账号不会被重新登入
   void autoSignUp().then((auto) => {
     if (!auto || account) return;
     account = auto;
     renderAccountUI();
   });
 
-  // 离开页面（客户端路由）时释放观察器与断点监听，避免僵尸回调
   document.addEventListener(
     "astro:before-swap",
     () => {
