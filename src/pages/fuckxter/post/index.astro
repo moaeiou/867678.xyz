@@ -95,9 +95,9 @@ import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
       timeStyle: "short",
     });
 
-  function renderPostInfo(post: Post): HTMLElement {
-    const box = el("div", "fk-post-info");
-    const title = el("h4", "fk-post-info-title");
+  function renderPostInfo(post: Post): HTMLDetailsElement {
+    const box = el("details", "fk-post-info");
+    const title = el("summary", "fk-post-info-title");
     title.textContent = "详情";
     const author = el("div", "fk-post-info-author");
     const avatar = authorAvatar(post.author.handle, post.author.name);
@@ -123,6 +123,7 @@ import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
     row("喜欢", fmtCount(post.stats.likes));
     if (post.media?.alt) row("媒体描述", post.media.alt);
 
+    box.open = !matchMedia("(max-width: 900px)").matches;
     box.append(title, author, rows);
     return box;
   }

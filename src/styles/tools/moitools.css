@@ -464,6 +464,12 @@
   line-height: 1.55;
 }
 
+.tools-footer {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
 @container page (max-width: 800px) {
   .tools-page {
     grid-template-rows: auto;
@@ -478,6 +484,10 @@
   .speed-card,
   .client-card {
     grid-column: 1;
+  }
+
+  .tools-footer {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

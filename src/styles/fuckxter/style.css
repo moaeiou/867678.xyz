@@ -523,7 +523,7 @@
 .fk-fieldset {
   margin-bottom: 1rem;
   padding: 1rem;
-  border: 1px solid var(--color-border-soft);
+  border: 1px solid var(--color-border);
   border-radius: 14px;
 }
 
@@ -532,6 +532,66 @@
   color: var(--color-text-strong);
   font-size: 0.92rem;
   font-weight: 700;
+}
+
+.fk-security-state-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--color-border-soft);
+  border-radius: 10px;
+  background: var(--color-bg-subtle);
+}
+
+.fk-security-state-row[hidden] {
+  display: none;
+}
+
+.fk-security-state {
+  color: var(--color-text-strong);
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+
+.fk-security-state-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  background: var(--color-bg);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.fk-security-state-row .fk-ghost-btn {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.fk-security-forms {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 960px) {
+  .fk-security-forms {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    margin-bottom: 1rem;
+  }
+
+  .fk-security-forms .fk-fieldset {
+    margin-bottom: 0;
+  }
+
+  .fk-security-advanced {
+    margin-bottom: 0;
+  }
 }
 
 .fk-inline-row {
@@ -1271,7 +1331,7 @@
 .fk-post-side {
   flex: none;
   width: min(380px, 36vw);
-  overflow-y: auto;
+  overflow: hidden;
   padding: 1.5rem;
   border-left: 1px solid var(--color-border);
   background: var(--color-bg-subtle);
@@ -1294,6 +1354,15 @@
   margin: 0 0 0.9rem;
   color: var(--color-text-strong);
   font-size: 1rem;
+}
+
+.fk-post-info-title {
+  cursor: pointer;
+  user-select: none;
+}
+
+.fk-post-info:not([open]) .fk-post-info-title {
+  margin-bottom: 0;
 }
 
 .fk-post-info-author {
@@ -1355,10 +1424,12 @@
 }
 
 .fk-comments {
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   gap: 0.9rem;
   min-height: 0;
+  overflow: hidden;
 }
 
 .fk-comments-title {
@@ -1396,9 +1467,13 @@
 }
 
 .fk-comments-list {
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   gap: 0.9rem;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .fk-comment {
@@ -1460,17 +1535,26 @@
 
 @media (max-width: 900px) {
   .fk-post-layout {
-    flex-direction: column;
+    display: block;
+    overflow-y: auto;
   }
 
   .fk-post-main {
+    display: block;
     padding: 1.25rem 0.9rem 2rem;
+    overflow: visible;
   }
 
   .fk-post-side {
     width: 100%;
+    overflow: visible;
     border-left: 0;
     border-top: 1px solid var(--color-border);
+  }
+
+  .fk-comments,
+  .fk-comments-list {
+    overflow: visible;
   }
 
   .fk-settings-layout {
@@ -1564,12 +1648,12 @@
 
 .fk-user-row {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 0;
+  gap: 0.9rem;
   padding: 1.25rem 1.25rem 0;
   margin-top: 0;
-  text-align: center;
+  text-align: left;
 }
 
 .fk-user-avatar {
@@ -1586,15 +1670,14 @@
 }
 
 .fk-user-who {
-  width: 100%;
+  flex: 1 1 auto;
   min-width: 0;
-  padding: 0.8rem 0 0;
 }
 
 .fk-user-name-line {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 0.4rem;
   color: var(--color-text-strong);
   font-size: 1.2rem;

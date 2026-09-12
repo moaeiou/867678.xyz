@@ -43,6 +43,7 @@ export interface S3Config {
 
 const ACCOUNT_KEY = "fk-account";
 const S3_KEY = "fk-s3-config";
+const RECOVERY_META_KEY = `${ACCOUNT_KEY}:recovery-meta`;
 const NETWORK_DELAY_MS = 350;
 const RESERVED_HANDLES = new Set(["user", "post", "settings", "api", "assets"]);
 
@@ -250,8 +251,26 @@ export async function generateRecoveryCodes(): Promise<string[]> {
     () =>
       `${randomCode("ACDEFGHJKLMNPQRSTUVWXY3456789", 4)}-${randomCode("ACDEFGHJKLMNPQRSTUVWXY3456789", 4)}`,
   );
+  localStorage.setItem(
+    RECOVERY_META_KEY,
+    JSON.stringify({
+      count: codes.length,
+      generatedAt: new Date().toISOString(),
+    }),
+  );
 
   return delay(codes);
+}
+
+export function getRecoveryCodeCount(): number {
+  try {
+    const raw = localStorage.getItem(RECOVERY_META_KEY);
+    if (!raw) return 0;
+    const meta = JSON.parse(raw) as { count?: unknown };
+    return typeof meta.count === "number" && meta.count > 0 ? meta.count : 0;
+  } catch {
+    return 0;
+  }
 }
 
 export function getS3Config(): S3Config | null {

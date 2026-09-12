@@ -4,6 +4,7 @@ import {
   changePassword,
   confirmTwoFactor,
   generateRecoveryCodes,
+  getRecoveryCodeCount,
 } from "../auth";
 import {
   downloadRecoveryCodes,
@@ -92,45 +93,54 @@ export function mountSecuritySettings(
   const tfaStatus = root.querySelector<HTMLElement>("[data-role=tfa-status]")!;
   const tfaOff = root.querySelector<HTMLElement>("[data-role=tfa-off]")!;
   const tfaSetup = root.querySelector<HTMLElement>("[data-role=tfa-setup]")!;
+  const tfaManage = root.querySelector<HTMLElement>("[data-role=tfa-manage]")!;
 
   const renderTfa = () => {
     const account = context.getAccount();
     if (!account) return;
     tfaStatus.textContent = account.twoFactorEnabled
-      ? "两步验证已开启 ✓"
+      ? ""
       : "未开启。开启后登录时需要验证器 App 的动态验证码。";
+    tfaStatus.hidden = Boolean(account.twoFactorEnabled);
     tfaOff.hidden = Boolean(account.twoFactorEnabled);
+    tfaManage.hidden = !account.twoFactorEnabled;
     tfaSetup.hidden = true;
     setStatus(root.querySelector<HTMLElement>("[data-role=tfa-secret]"), "");
   };
 
+  const startTfaSetup = async () => {
+    try {
+      const { secret } = await beginTwoFactor();
+      setStatus(
+        root.querySelector<HTMLElement>("[data-role=tfa-secret]"),
+        secret,
+      );
+      tfaStatus.hidden = true;
+      tfaOff.hidden = true;
+      tfaManage.hidden = true;
+      tfaSetup.hidden = false;
+      setStatus(
+        root.querySelector<HTMLElement>("[data-role=tfa-setup-status]"),
+        "",
+      );
+    } catch (error) {
+      tfaStatus.hidden = false;
+      tfaStatus.textContent =
+        error instanceof Error ? error.message : "初始化失败";
+    }
+  };
+
   root
     .querySelector<HTMLButtonElement>("[data-role=tfa-start]")!
-    .addEventListener("click", async () => {
-      try {
-        const { secret } = await beginTwoFactor();
-        setStatus(
-          root.querySelector<HTMLElement>("[data-role=tfa-secret]"),
-          secret,
-        );
-        tfaOff.hidden = true;
-        tfaSetup.hidden = false;
-        setStatus(
-          root.querySelector<HTMLElement>("[data-role=tfa-setup-status]"),
-          "",
-        );
-      } catch (error) {
-        tfaStatus.textContent =
-          error instanceof Error ? error.message : "初始化失败";
-      }
-    });
+    .addEventListener("click", startTfaSetup);
+
+  root
+    .querySelector<HTMLButtonElement>("[data-role=tfa-replace]")!
+    .addEventListener("click", startTfaSetup);
 
   root
     .querySelector<HTMLButtonElement>("[data-role=tfa-cancel]")!
-    .addEventListener("click", () => {
-      tfaSetup.hidden = true;
-      tfaOff.hidden = false;
-    });
+    .addEventListener("click", renderTfa);
 
   root
     .querySelector<HTMLButtonElement>("[data-role=tfa-confirm]")!
@@ -163,17 +173,28 @@ export function mountSecuritySettings(
   const recoveryGenerate = root.querySelector<HTMLButtonElement>(
     "[data-role=recovery-generate]",
   )!;
+  const recoverySummary = root.querySelector<HTMLElement>(
+    "[data-role=recovery-summary]",
+  )!;
+  const recoveryReplace = root.querySelector<HTMLButtonElement>(
+    "[data-role=recovery-replace]",
+  )!;
 
-  const renderRecovery = () => {
+  const renderRecovery = (showCodes = false) => {
     const account = context.getAccount();
     if (!account) return;
-    recoveryBox.hidden = true;
+    const recoveryCount = getRecoveryCodeCount();
+    recoveryBox.hidden = !showCodes;
     recoveryHint.hidden = account.twoFactorEnabled;
-    recoveryGenerate.hidden = !account.twoFactorEnabled;
+    recoverySummary.hidden = !account.twoFactorEnabled || recoveryCount === 0;
+    recoveryGenerate.hidden = !account.twoFactorEnabled || recoveryCount > 0;
+    root.querySelector<HTMLElement>("[data-role=recovery-count]")!.textContent =
+      `当前已生成 ${recoveryCount} 个恢复密钥`;
   };
 
-  recoveryGenerate.addEventListener("click", async () => {
+  const replaceRecoveryCodes = async () => {
     recoveryGenerate.disabled = true;
+    recoveryReplace.disabled = true;
     try {
       const codes = await generateRecoveryCodes();
       root
@@ -185,7 +206,7 @@ export function mountSecuritySettings(
             return item;
           }),
         );
-      recoveryBox.hidden = false;
+      renderRecovery(true);
     } catch (error) {
       setStatus(
         root.querySelector<HTMLElement>("[data-role=recovery-status]"),
@@ -193,8 +214,12 @@ export function mountSecuritySettings(
       );
     } finally {
       recoveryGenerate.disabled = false;
+      recoveryReplace.disabled = false;
     }
-  });
+  };
+
+  recoveryGenerate.addEventListener("click", replaceRecoveryCodes);
+  recoveryReplace.addEventListener("click", replaceRecoveryCodes);
 
   root
     .querySelector<HTMLButtonElement>("[data-role=recovery-copy]")!
