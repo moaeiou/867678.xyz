@@ -1,13 +1,7 @@
 import { navigate } from "astro:transitions/client";
-import {
-  autoSignUp,
-  getAccount,
-  signIn,
-  signOut,
-  signUp,
-  type Account,
-} from "./auth";
+import { getAccount, signIn, signOut, type Account } from "./auth";
 import { avatarGradient } from "./dom";
+import { userPath } from "./urls";
 
 interface AccountControlsOptions {
   onAccountChange: () => void;
@@ -58,7 +52,6 @@ export function mountAccountControls(
   )!;
 
   let account: Account | null = getAccount();
-  const autoAccount = account ? null : autoSignUp();
 
   const applyThemeChoice = (mode: string) => {
     localStorage.setItem("theme", mode);
@@ -135,11 +128,7 @@ export function mountAccountControls(
     if (event.key === "Escape") closeAccountMenu();
   };
 
-  accountBtn.addEventListener("click", async () => {
-    if (!account && autoAccount) {
-      account = (await autoAccount) ?? account;
-      renderAccountUI();
-    }
+  accountBtn.addEventListener("click", () => {
     if (accountMenu.hidden) {
       renderAccountUI();
       accountMenu.hidden = false;
@@ -199,14 +188,14 @@ export function mountAccountControls(
     const authOpen = target.closest<HTMLButtonElement>("[data-auth-open]");
     if (authOpen) {
       closeAccountMenu();
-      openAuthModal(authOpen.dataset.authOpen as "signin" | "signup");
+      openAuthModal();
       return;
     }
     const open = target.closest<HTMLButtonElement>("[data-account-open]");
     if (open) {
       if (open.dataset.accountOpen === "profile" && account) {
         closeAccountMenu();
-        navigate(`/fuckxter/user/?handle=${account.profile.handle}`);
+        navigate(userPath(account.profile.handle));
       }
       return;
     }
@@ -224,44 +213,16 @@ export function mountAccountControls(
   const signinForm = authModal.querySelector<HTMLFormElement>(
     "[data-role=signin-form]",
   )!;
-  const signupForm = authModal.querySelector<HTMLFormElement>(
-    "[data-role=signup-form]",
-  )!;
   const signinStatus = authModal.querySelector<HTMLElement>(
     "[data-role=signin-status]",
   )!;
-  const signupStatus = authModal.querySelector<HTMLElement>(
-    "[data-role=signup-status]",
-  )!;
 
-  const setAuthTab = (tab: "signin" | "signup") => {
-    for (const button of authModal.querySelectorAll<HTMLButtonElement>(
-      "[data-auth-tab]",
-    )) {
-      const active = button.dataset.authTab === tab;
-      button.classList.toggle("is-active", active);
-      button.setAttribute("aria-selected", String(active));
-    }
-    signinForm.hidden = tab !== "signin";
-    signupForm.hidden = tab !== "signup";
-    setStatus(signinStatus, "");
-    setStatus(signupStatus, "");
-  };
-
-  const openAuthModal = (tab: "signin" | "signup") => {
-    setAuthTab(tab);
+  const openAuthModal = () => {
     signinForm.reset();
-    signupForm.reset();
+    setStatus(signinStatus, "");
     openModal(authModal);
   };
 
-  for (const button of authModal.querySelectorAll<HTMLButtonElement>(
-    "[data-auth-tab]",
-  )) {
-    button.addEventListener("click", () =>
-      setAuthTab(button.dataset.authTab as "signin" | "signup"),
-    );
-  }
   authModal
     .querySelector<HTMLButtonElement>("[data-role=auth-close]")!
     .addEventListener("click", () => closeModal(authModal));
@@ -293,39 +254,7 @@ export function mountAccountControls(
     }
   });
 
-  signupForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const data = new FormData(signupForm);
-    const button =
-      signupForm.querySelector<HTMLButtonElement>(".fk-primary-btn")!;
-    button.disabled = true;
-    setStatus(signupStatus, "创建中…");
-    try {
-      account = await signUp({
-        name: String(data.get("name") ?? ""),
-        handle: String(data.get("handle") ?? ""),
-        email: String(data.get("email") ?? ""),
-        password: String(data.get("password") ?? ""),
-      });
-      renderAccountUI();
-      closeModal(authModal);
-    } catch (error) {
-      setStatus(
-        signupStatus,
-        error instanceof Error ? error.message : "注册失败",
-      );
-    } finally {
-      button.disabled = false;
-    }
-  });
-
   renderAccountUI();
-
-  void autoAccount?.then((auto) => {
-    if (!auto || account) return;
-    account = auto;
-    renderAccountUI();
-  });
 
   return {
     dispose: () => {

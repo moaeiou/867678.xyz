@@ -114,7 +114,7 @@ export function authorAvatar(
 ): HTMLAnchorElement {
   const avatar = el("a", `${className} fk-avatar-link`);
   avatar.dataset.handle = handle;
-  avatar.href = `/fuckxter/user/?handle=${encodeURIComponent(handle)}`;
+  avatar.href = `/fuckxter/user/${encodeURIComponent(handle)}`;
   avatar.setAttribute("style", avatarGradient(handle));
   avatar.textContent = [...name][0] ?? "?";
   avatar.title = `查看 @${handle} 的主页`;

@@ -11,7 +11,7 @@ import {
 import { getAccount, toFeedUser } from "./auth";
 import { avatarGradient, el, fmtCount, renderPost, statusRow } from "./dom";
 import type { FeedTab, Post, SearchResult } from "./types";
-import { postPath } from "./urls";
+import { postPath, userPath } from "./urls";
 
 const MAX_CHARS = 500;
 
@@ -301,7 +301,7 @@ export function mountFeed(container: HTMLElement): FeedControls {
     const avatarLink = target.closest<HTMLElement>(".fk-avatar-link");
     if (avatarLink?.dataset.handle) {
       event.preventDefault();
-      void navigate(`/fuckxter/user/?handle=${avatarLink.dataset.handle}`);
+      void navigate(userPath(avatarLink.dataset.handle));
       return;
     }
 

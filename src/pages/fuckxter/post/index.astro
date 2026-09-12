@@ -61,7 +61,11 @@ import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
   } from "../../../lib/fuckxter/dom";
   import { onFuckxterPageReady } from "../../../lib/fuckxter/page";
   import type { Post } from "../../../lib/fuckxter/types";
-  import { parsePostPath, postPath } from "../../../lib/fuckxter/urls";
+  import {
+    parsePostPath,
+    postPath,
+    userPath,
+  } from "../../../lib/fuckxter/urls";
 
   interface Comment {
     text: string;
@@ -304,7 +308,7 @@ import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
       );
       if (avatarLink?.dataset.handle) {
         event.preventDefault();
-        navigate(`/fuckxter/user/?handle=${avatarLink.dataset.handle}`);
+        navigate(userPath(avatarLink.dataset.handle));
       }
     });
 

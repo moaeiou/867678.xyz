@@ -1,7 +1,7 @@
 ---
-import "../../styles/fuckxter/style.css";
+import "../../../styles/fuckxter/style.css";
 
-import FuckxterLayout from "../../layouts/FuckxterLayout.astro";
+import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
 ---
 
 <FuckxterLayout title="个人主页">
@@ -55,8 +55,8 @@ import FuckxterLayout from "../../layouts/FuckxterLayout.astro";
     toggleLike,
     toggleRepost,
     toggleSave,
-  } from "../../lib/fuckxter/api";
-  import { getAccount, type Account } from "../../lib/fuckxter/auth";
+  } from "../../../lib/fuckxter/api";
+  import { getAccount, type Account } from "../../../lib/fuckxter/auth";
   import {
     authorAvatar,
     avatarGradient,
@@ -65,10 +65,14 @@ import FuckxterLayout from "../../layouts/FuckxterLayout.astro";
     ICONS,
     renderPost,
     statusRow,
-  } from "../../lib/fuckxter/dom";
-  import { onFuckxterPageReady } from "../../lib/fuckxter/page";
-  import type { Post } from "../../lib/fuckxter/types";
-  import { postPath } from "../../lib/fuckxter/urls";
+  } from "../../../lib/fuckxter/dom";
+  import { onFuckxterPageReady } from "../../../lib/fuckxter/page";
+  import type { Post } from "../../../lib/fuckxter/types";
+  import {
+    parseUserPath,
+    postPath,
+    userPath,
+  } from "../../../lib/fuckxter/urls";
 
   const fullTime = (iso: string) =>
     new Date(iso).toLocaleString("zh-CN", { dateStyle: "long" });
@@ -161,7 +165,7 @@ import FuckxterLayout from "../../layouts/FuckxterLayout.astro";
       const avatarLink = target.closest<HTMLElement>(".fk-avatar-link");
       if (avatarLink?.dataset.handle) {
         event.preventDefault();
-        navigate(`/fuckxter/user/?handle=${avatarLink.dataset.handle}`);
+        navigate(userPath(avatarLink.dataset.handle));
         return;
       }
 
@@ -239,7 +243,9 @@ import FuckxterLayout from "../../layouts/FuckxterLayout.astro";
     )!;
 
     const account: Account | null = getAccount();
+    // 优先取路径 /fuckxter/user/<handle>，兼容旧的 ?handle= 参数
     const handle = (
+      parseUserPath(location.pathname) ??
       new URLSearchParams(location.search).get("handle") ??
       account?.profile.handle ??
       ""

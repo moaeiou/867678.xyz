@@ -104,47 +104,32 @@ export function toFeedUser(account: Account | null): FeedUser {
   };
 }
 
-export async function signUp(input: {
-  name: string;
-  handle: string;
-  email: string;
-  password: string;
-}): Promise<Account> {
-  if (readAccount())
-    throw new Error("本机已有账号，请直接登录（演示环境单账号）");
-  const handle = input.handle.trim().replace(/^@/, "").toLowerCase();
-  if (!/^[a-z0-9_]{2,20}$/.test(handle))
-    throw new Error("用户名需为 2~20 位字母、数字或下划线");
-  if (RESERVED_HANDLES.has(handle))
-    throw new Error("该用户名为系统保留名称，请换一个");
-  const account: Account = {
-    profile: {
-      name: input.name.trim() || handle,
-      handle,
-      bio: "",
-      email: input.email.trim(),
-      region: "",
-      gender: "",
-      birthday: "",
-    },
-    twoFactorEnabled: false,
-    createdAt: new Date().toISOString(),
-  };
-  writeAccount(account);
-  writeSecret(obscure(input.password));
-
-  return delay(account);
+function handleFromEmail(email: string): string {
+  const base = email
+    .split("@")[0]
+    .replace(/[^a-z0-9_]/gi, "")
+    .toLowerCase()
+    .slice(0, 20);
+  if (/^[a-z0-9_]{2,20}$/.test(base) && !RESERVED_HANDLES.has(base)) {
+    return base;
+  }
+  return `guest${randomCode("23456789abcdefghjkmnpqrstuvwxyz", 4)}`;
 }
 
-export async function autoSignUp(): Promise<Account | null> {
-  if (readAccount()) return null;
-  const suffix = randomCode("23456789abcdefghjkmnpqrstuvwxyz", 4);
+/** 未注册的用户直接用邮箱+密码创建账号 */
+async function registerWithIdentifier(
+  identifier: string,
+  password: string,
+): Promise<Account> {
+  const id = identifier.trim().replace(/^@/, "").toLowerCase();
+  const email = id.includes("@") ? id : `${id}@local.demo`;
+  const handle = handleFromEmail(email);
   const account: Account = {
     profile: {
-      name: `访客${suffix}`,
-      handle: `guest${suffix}`,
+      name: handle,
+      handle,
       bio: "",
-      email: `guest${suffix}@local.demo`,
+      email,
       region: "",
       gender: "",
       birthday: "",
@@ -153,8 +138,8 @@ export async function autoSignUp(): Promise<Account | null> {
     createdAt: new Date().toISOString(),
   };
   writeAccount(account);
-
-  writeSecret(obscure(randomCode("ACDEFGHJKLMNPQRSTUVWXY3456789", 24)));
+  writeSecret(obscure(password));
+  localStorage.removeItem(SIGNED_OUT_KEY);
 
   return delay(account);
 }
@@ -164,7 +149,12 @@ export async function signIn(input: {
   password: string;
 }): Promise<Account> {
   const account = readAccount();
-  if (!account) throw new Error("本机还没有账号（演示环境）");
+  if (!account) {
+    // 没有账号：自动注册
+    if (!input.identifier.trim()) throw new Error("请输入邮箱");
+    if (!input.password) throw new Error("请输入密码");
+    return registerWithIdentifier(input.identifier, input.password);
+  }
   const id = input.identifier.trim().replace(/^@/, "").toLowerCase();
   if (
     id !== account.profile.email.toLowerCase() &&

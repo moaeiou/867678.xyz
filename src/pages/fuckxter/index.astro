@@ -101,7 +101,7 @@ import FuckxterLayout from "../../layouts/FuckxterLayout.astro";
               role="menuitem"
               data-auth-open="signin"
             >
-              登录
+              登录 / 注册
             </button>
           </div>
 
@@ -233,35 +233,14 @@ import FuckxterLayout from "../../layouts/FuckxterLayout.astro";
         />
       </div>
 
-      <div class="fk-dialog-tabs" role="tablist" aria-label="登录或注册">
-        <button
-          type="button"
-          class="fk-dialog-tab is-active"
-          role="tab"
-          aria-selected="true"
-          data-auth-tab="signin"
-        >
-          登录
-        </button>
-        <button
-          type="button"
-          class="fk-dialog-tab"
-          role="tab"
-          aria-selected="false"
-          data-auth-tab="signup"
-        >
-          注册
-        </button>
-      </div>
-
       <form data-role="signin-form" novalidate>
         <label class="fk-field">
-          <span class="fk-field-label">邮箱或用户名</span>
+          <span class="fk-field-label">邮箱</span>
           <input
             name="identifier"
-            type="text"
+            type="email"
             autocomplete="username"
-            placeholder="you@example.com 或 @username"
+            placeholder="you@example.com"
             required
           />
         </label>
@@ -278,55 +257,8 @@ import FuckxterLayout from "../../layouts/FuckxterLayout.astro";
         <p class="fk-form-status" data-role="signin-status" aria-live="polite">
         </p>
         <button class="fk-primary-btn" type="submit">登录</button>
-        <p class="fk-form-hint">忘记密码？后端就绪后将支持恢复密钥找回。</p>
-      </form>
-
-      <form data-role="signup-form" hidden novalidate>
-        <label class="fk-field">
-          <span class="fk-field-label">昵称</span>
-          <input
-            name="name"
-            type="text"
-            maxlength="20"
-            placeholder="给自己起个名字（可留空，默认用用户名）"
-          />
-        </label>
-        <label class="fk-field">
-          <span class="fk-field-label">用户名</span>
-          <input
-            name="handle"
-            type="text"
-            maxlength="20"
-            autocomplete="username"
-            placeholder="2~20 位字母、数字或下划线"
-            required
-          />
-        </label>
-        <label class="fk-field">
-          <span class="fk-field-label">邮箱</span>
-          <input
-            name="email"
-            type="email"
-            autocomplete="email"
-            placeholder="you@example.com"
-            required
-          />
-        </label>
-        <label class="fk-field">
-          <span class="fk-field-label">密码</span>
-          <input
-            name="password"
-            type="password"
-            autocomplete="new-password"
-            placeholder="随意设置"
-            required
-          />
-        </label>
-        <p class="fk-form-status" data-role="signup-status" aria-live="polite">
-        </p>
-        <button class="fk-primary-btn" type="submit">创建账号</button>
         <p class="fk-form-hint">
-          演示环境：账号仅保存在本机浏览器，不会上传。登录时可用邮箱或用户名。
+          未注册的用户将会自动注册，注册表示你同意我们的用户协议。
         </p>
       </form>
 

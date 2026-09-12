@@ -14,7 +14,9 @@ document.addEventListener("astro:before-swap", cancelActiveSpeedtest);
 let bootGeneration = 0;
 
 const boot = () => {
-  if (!document.getElementById("run-speedtest")) return;
+  const trigger = document.getElementById("run-speedtest");
+  if (!trigger || trigger.dataset.moitoolsBooted) return;
+  trigger.dataset.moitoolsBooted = "true";
   const generation = ++bootGeneration;
   initInfo();
   const ipRequests = initIp();
@@ -31,4 +33,11 @@ const boot = () => {
   });
 };
 
+// astro:page-load 在脚本加载慢时可能先于本模块触发而被错过，
+// 所以首次进入页面额外用 DOMContentLoaded 兜底；dataset 标记防止双跑。
 document.addEventListener("astro:page-load", boot);
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", boot, { once: true });
+} else {
+  boot();
+}

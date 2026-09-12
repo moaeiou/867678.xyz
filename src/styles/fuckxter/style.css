@@ -1534,7 +1534,7 @@
   grid-area: banner;
   height: clamp(240px, 34vh, 360px);
   border: 1px solid var(--color-border);
-  border-radius: 18px;
+  border-radius: 15px;
   background-position: center;
   background-size: cover;
   box-shadow: var(--shadow-card);
