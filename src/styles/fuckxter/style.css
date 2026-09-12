@@ -460,9 +460,17 @@
 }
 
 .fk-form-hint {
-  margin: 0.35rem 0 0.8rem;
+  margin: 0.8rem 0 0.8rem;
   color: var(--color-text-muted);
   font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.fk-dialog .fk-primary-btn {
+  display: block;
+  width: 100%;
+  margin-top: 0.4rem;
+  padding: 0.7rem 1.2rem;
 }
 
 .fk-primary-btn {
@@ -846,6 +854,7 @@
 
 .fk-feed-columns.is-masonry .fk-post-text {
   display: -webkit-box;
+  line-clamp: 12;
   -webkit-line-clamp: 12;
   -webkit-box-orient: vertical;
   overflow: hidden;
@@ -1073,6 +1082,7 @@
 
 .fk-saved-item .fk-post-text {
   display: -webkit-box;
+  line-clamp: 4;
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
@@ -1497,7 +1507,7 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
-  padding: 0 1.5rem;
+  padding: 1rem 1.5rem 1.5rem;
 }
 
 .fk-user-inner {
@@ -1532,6 +1542,7 @@
 
 .fk-user-banner {
   grid-area: banner;
+  width: 100%;
   height: clamp(240px, 34vh, 360px);
   border: 1px solid var(--color-border);
   border-radius: 15px;
@@ -1650,7 +1661,7 @@
 
 @media (max-width: 900px) {
   .fk-user-main {
-    padding: 0 1rem 3rem;
+    padding: 1rem 1rem 3rem;
     overflow-y: auto;
   }
 
