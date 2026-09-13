@@ -1,5 +1,11 @@
 import { navigate } from "astro:transitions/client";
-import { getAccount, signIn, signOut, type Account } from "./auth";
+import {
+  AUTH_REQUIRED_EVENT,
+  getAccount,
+  signIn,
+  signOut,
+  type Account,
+} from "./auth";
 import { avatarGradient } from "./dom";
 import { userPath } from "./urls";
 
@@ -233,6 +239,12 @@ export function mountAccountControls(
     .querySelector<HTMLElement>("[data-role=auth-backdrop]")!
     .addEventListener("click", () => closeModal(authModal));
 
+  const onAuthRequired = () => {
+    closeAccountMenu();
+    openAuthModal();
+  };
+  window.addEventListener(AUTH_REQUIRED_EVENT, onAuthRequired);
+
   signinForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const data = new FormData(signinForm);
@@ -264,6 +276,7 @@ export function mountAccountControls(
       document.removeEventListener("click", onDocClick, true);
       document.removeEventListener("keydown", onMenuKeydown, true);
       document.removeEventListener("keydown", onModalKeydown, true);
+      window.removeEventListener(AUTH_REQUIRED_EVENT, onAuthRequired);
       modalKeysBound = false;
     },
   };

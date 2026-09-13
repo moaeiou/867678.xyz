@@ -29,6 +29,8 @@ interface AccountResponse {
   account: Account | null;
 }
 
+export const AUTH_REQUIRED_EVENT = "fk:auth-required";
+
 let account: Account | null = null;
 let sessionPromise: Promise<Account | null> | null = null;
 
@@ -73,6 +75,10 @@ export function toFeedUser(value: Account | null): FeedUser {
     name: value.profile.name,
     handle: value.profile.handle,
   };
+}
+
+export function requestAuthentication(): void {
+  window.dispatchEvent(new Event(AUTH_REQUIRED_EVENT));
 }
 
 export async function signIn(input: {

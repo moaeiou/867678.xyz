@@ -202,6 +202,13 @@ import FuckxterLayout from "../../layouts/FuckxterLayout.astro";
             placeholder="有什么新鲜事？"
             aria-label="发帖内容"></textarea>
           <div class="fk-composer-foot">
+            <span
+              class="fk-composer-auth-hint"
+              data-role="composer-auth-hint"
+              hidden
+            >
+              注册后才能发帖
+            </span>
             <span class="fk-char-count">0 / 500</span>
             <button type="button" class="fk-post-btn" disabled>发帖</button>
           </div>

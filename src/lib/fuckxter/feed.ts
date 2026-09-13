@@ -7,8 +7,9 @@ import {
   toggleRepost,
   toggleSave,
 } from "./api";
-import { getAccount, toFeedUser } from "./auth";
+import { getAccount, requestAuthentication, toFeedUser } from "./auth";
 import { avatarGradient, el, fmtCount, renderPost, statusRow } from "./dom";
+import { ApiError } from "./http";
 import type { FeedTab, Post, SearchResult } from "./types";
 import { postPath, userPath } from "./urls";
 
@@ -71,6 +72,9 @@ export function mountFeed(container: HTMLElement): FeedControls {
   const composerBtn =
     container.querySelector<HTMLButtonElement>(".fk-post-btn")!;
   const charCount = container.querySelector<HTMLElement>(".fk-char-count")!;
+  const composerAuthHint = container.querySelector<HTMLElement>(
+    "[data-role=composer-auth-hint]",
+  )!;
   const searchInput =
     container.querySelector<HTMLInputElement>(".fk-search-input")!;
   const composerAvatar = container.querySelector<HTMLElement>(
@@ -78,10 +82,14 @@ export function mountFeed(container: HTMLElement): FeedControls {
   )!;
 
   const syncComposerUser = () => {
-    const me = toFeedUser(getAccount());
+    const account = getAccount();
+    const me = toFeedUser(account);
     composerAvatar.setAttribute("style", avatarGradient(me.handle));
     composerAvatar.textContent = [...me.name][0] ?? "?";
     composerAvatar.title = `@${me.handle}`;
+    composerAuthHint.hidden = Boolean(account);
+    composerBtn.textContent = account ? "发帖" : "注册后发帖";
+    composerInput.placeholder = account ? "有什么新鲜事？" : "注册后才能发帖";
   };
   syncComposerUser();
 
@@ -173,7 +181,7 @@ export function mountFeed(container: HTMLElement): FeedControls {
     feed.querySelectorAll(".fk-status").forEach((node) => node.remove());
     const row = el("div", "fk-status");
     row.append(
-      document.createTextNode("加载失败了。"),
+      document.createTextNode("加载失败。"),
       Object.assign(el("button", "fk-retry-btn"), {
         type: "button",
         textContent: "重试",
@@ -405,6 +413,10 @@ export function mountFeed(container: HTMLElement): FeedControls {
   syncComposer();
 
   composerBtn.addEventListener("click", async () => {
+    if (!getAccount()) {
+      requestAuthentication();
+      return;
+    }
     const text = composerInput.value.trim();
     if (!text) return;
     composerBtn.disabled = true;
@@ -425,7 +437,13 @@ export function mountFeed(container: HTMLElement): FeedControls {
 
       scroller.scrollTo({ top: 0 });
       await loadPage(true);
-    } catch {
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        composerBtn.textContent = "注册后发帖";
+        composerBtn.disabled = false;
+        requestAuthentication();
+        return;
+      }
       composerBtn.textContent = "发送失败";
       setTimeout(() => {
         composerBtn.textContent = label;

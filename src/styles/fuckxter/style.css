@@ -848,6 +848,17 @@
   font-variant-numeric: tabular-nums;
 }
 
+.fk-composer-auth-hint {
+  margin-right: auto;
+  color: var(--color-accent);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.fk-composer-auth-hint[hidden] {
+  display: none;
+}
+
 .fk-char-count.is-over {
   color: var(--fk-like);
   font-weight: 700;
