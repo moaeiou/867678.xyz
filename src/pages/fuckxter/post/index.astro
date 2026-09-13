@@ -44,10 +44,8 @@ import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
   import {
     getPostByPath,
     getPostById,
-    isSaved,
     toggleLike,
     toggleRepost,
-    toggleSave,
   } from "../../../lib/fuckxter/api";
   import { getAccount } from "../../../lib/fuckxter/auth";
   import {
@@ -118,9 +116,6 @@ import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
       rows.append(dt, dd);
     };
     row("发布时间", fullTime(post.createdAt));
-    row("回复", fmtCount(post.stats.replies));
-    row("转发", fmtCount(post.stats.reposts));
-    row("喜欢", fmtCount(post.stats.likes));
     if (post.media?.alt) row("媒体描述", post.media.alt);
 
     box.open = !matchMedia("(max-width: 900px)").matches;
@@ -138,8 +133,6 @@ import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
       actionButton("reply", ICONS.reply, "回复", post.stats.replies),
       actionButton("repost", ICONS.repost, "转发", post.stats.reposts),
       actionButton("like", ICONS.heart, "喜欢", post.stats.likes),
-      actionButton("save", ICONS.bookmark, "收藏", 0),
-      actionButton("share", ICONS.share, "分享", 0),
     );
 
     const repostBtn = actions.querySelector<HTMLButtonElement>(
@@ -148,12 +141,8 @@ import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
     const likeBtn = actions.querySelector<HTMLButtonElement>(
       '[data-action="like"]',
     )!;
-    const saveBtn = actions.querySelector<HTMLButtonElement>(
-      '[data-action="save"]',
-    )!;
     repostBtn.classList.toggle("is-reposted", Boolean(post.reposted));
     likeBtn.classList.toggle("is-liked", Boolean(post.liked));
-    saveBtn.classList.toggle("is-saved", isSaved(post.id));
 
     const setCount = (btn: HTMLButtonElement, count: number) => {
       btn.dataset.count = String(count);
@@ -174,17 +163,6 @@ import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
           ?.querySelector<HTMLTextAreaElement>(".fk-comment-input");
         input?.scrollIntoView({ behavior: "smooth", block: "center" });
         input?.focus();
-        return;
-      }
-
-      if (action === "save") {
-        const willSave = !btn.classList.contains("is-saved");
-        btn.classList.toggle("is-saved", willSave);
-        try {
-          await toggleSave(post, willSave);
-        } catch {
-          btn.classList.toggle("is-saved", !willSave);
-        }
         return;
       }
 
@@ -210,16 +188,6 @@ import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
         }
         return;
       }
-
-      if (action === "share") {
-        try {
-          await navigator.clipboard.writeText(
-            `${location.origin}${postPath(post)}`,
-          );
-          btn.title = "已复制链接";
-          setTimeout(() => (btn.title = "分享"), 1200);
-        } catch {}
-      }
     });
 
     box.append(title, actions);
@@ -238,7 +206,17 @@ import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
       const comments = readComments(postId);
       list.replaceChildren(
         ...(comments.length === 0
-          ? [statusRow("还没有评论，来说点什么吧。")]
+          ? [
+              (() => {
+                const empty = el("div", "fk-comments-empty");
+                const title = el("strong");
+                title.textContent = "还没有评论";
+                const hint = el("span");
+                hint.textContent = "来发表第一条评论吧。";
+                empty.append(title, hint);
+                return empty;
+              })(),
+            ]
           : comments.map((c) => {
               const item = el("div", "fk-comment");
               const avatar = authorAvatar(c.handle, c.name);

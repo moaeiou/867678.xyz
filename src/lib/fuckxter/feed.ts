@@ -198,8 +198,11 @@ export function mountFeed(container: HTMLElement): FeedControls {
       for (const post of page.posts) addPost(post);
       state.cursor = page.nextCursor;
       state.done = page.nextCursor === null;
-      if (state.done) feed.append(statusRow("你已看完全部内容 🎉"));
-      else if (sentinelReached()) {
+      if (state.done && orderedPosts.length === 0) {
+        feed.append(statusRow("还没有帖子，发布第一条吧。"));
+      } else if (state.done) {
+        feed.append(statusRow("你已看完全部内容"));
+      } else if (sentinelReached()) {
         window.setTimeout(() => {
           if (seq === state.seq) loadPage(false);
         }, 0);

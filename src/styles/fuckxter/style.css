@@ -1412,7 +1412,8 @@
 
 .fk-post-control-actions .fk-action {
   justify-content: center;
-  width: calc(50% - 0.25rem);
+  flex: 1 1 0;
+  width: auto;
   padding: 0.55rem 0.65rem;
   border: 1px solid var(--color-border-soft);
   border-radius: 10px;
@@ -1420,7 +1421,7 @@
 }
 
 .fk-post-control-actions .fk-action:last-child {
-  width: 100%;
+  width: auto;
 }
 
 .fk-comments {
@@ -1474,6 +1475,29 @@
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+.fk-comments-empty {
+  flex: 1 1 auto;
+  display: grid;
+  place-content: center;
+  gap: 0.25rem;
+  min-height: 120px;
+  padding: 1rem;
+  border: 1px dashed var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg-subtle);
+  text-align: center;
+}
+
+.fk-comments-empty strong {
+  color: var(--color-text-strong);
+  font-size: 0.9rem;
+}
+
+.fk-comments-empty span {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
 }
 
 .fk-comment {
@@ -1555,6 +1579,11 @@
   .fk-comments,
   .fk-comments-list {
     overflow: visible;
+  }
+
+  .fk-comments-empty {
+    min-height: 88px;
+    padding: 0.85rem;
   }
 
   .fk-settings-layout {
