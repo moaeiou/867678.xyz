@@ -56,7 +56,11 @@ import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
     toggleRepost,
     toggleSave,
   } from "../../../lib/fuckxter/api";
-  import { getAccount, type Account } from "../../../lib/fuckxter/auth";
+  import {
+    getAccount,
+    hydrateSession,
+    type Account,
+  } from "../../../lib/fuckxter/auth";
   import {
     authorAvatar,
     avatarGradient,
@@ -225,11 +229,12 @@ import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
     });
   }
 
-  const mount = () => {
+  const mount = async () => {
     const container = document.querySelector<HTMLElement>("[data-fk-user]");
     if (!container) return;
     if (container.dataset.fkUserMounted === "true") return;
     container.dataset.fkUserMounted = "true";
+    await hydrateSession();
 
     container
       .querySelector<HTMLButtonElement>("[data-role=back]")!
@@ -259,43 +264,51 @@ import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
 
     const isOwn = account?.profile.handle === handle;
 
-    void getPostsByUser(handle).then((posts) => {
-      document.title = `@${handle} | MoAEIOU`;
-      if (isOwn && account) {
+    void getPostsByUser(handle)
+      .then((posts) => {
+        document.title = `@${handle} | MoAEIOU`;
+        if (isOwn && account) {
+          head.replaceChildren(
+            renderUserHead(
+              { name: account.profile.name, handle: account.profile.handle },
+              {
+                bio: account.profile.bio,
+                region: account.profile.region,
+                gender: account.profile.gender,
+                birthday: account.profile.birthday,
+                joined: account.createdAt,
+              },
+              posts.length,
+              true,
+            ),
+          );
+        } else {
+          const author = posts[0]?.author;
+          head.replaceChildren(
+            renderUserHead(
+              author
+                ? {
+                    name: author.name,
+                    handle: author.handle,
+                    verified: author.verified,
+                  }
+                : { name: `@${handle}`, handle },
+              {},
+              posts.length,
+              false,
+            ),
+          );
+        }
+        bindPostList(postsRoot, posts, () => {});
+      })
+      .catch((error: unknown) => {
         head.replaceChildren(
-          renderUserHead(
-            { name: account.profile.name, handle: account.profile.handle },
-            {
-              bio: account.profile.bio,
-              region: account.profile.region,
-              gender: account.profile.gender,
-              birthday: account.profile.birthday,
-              joined: account.createdAt,
-            },
-            posts.length,
-            true,
-          ),
+          statusRow(error instanceof Error ? error.message : "用户加载失败。"),
         );
-      } else {
-        const author = posts[0]?.author;
-        head.replaceChildren(
-          renderUserHead(
-            author
-              ? {
-                  name: author.name,
-                  handle: author.handle,
-                  verified: author.verified,
-                }
-              : { name: `@${handle}`, handle },
-            {},
-            posts.length,
-            false,
-          ),
-        );
-      }
-      bindPostList(postsRoot, posts, () => {});
-    });
+      });
   };
 
-  onFuckxterPageReady(mount);
+  onFuckxterPageReady(() => {
+    void mount();
+  });
 </script>

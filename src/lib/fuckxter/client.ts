@@ -1,10 +1,12 @@
 import { mountAccountControls } from "./account";
+import { hydrateSession } from "./auth";
 import { mountFeed } from "./feed";
 
-function mountFuckxter(container: HTMLElement): void {
+async function mountFuckxter(container: HTMLElement): Promise<void> {
   if (container.dataset.fkMounted) return;
   container.dataset.fkMounted = "true";
 
+  await hydrateSession();
   const feed = mountFeed(container);
   const account = mountAccountControls(container, {
     onAccountChange: feed.syncUser,
@@ -22,5 +24,5 @@ function mountFuckxter(container: HTMLElement): void {
 
 export function mountFuckxterBySelector(selector: string): void {
   const container = document.querySelector<HTMLElement>(selector);
-  if (container) mountFuckxter(container);
+  if (container) void mountFuckxter(container);
 }

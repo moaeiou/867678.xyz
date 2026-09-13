@@ -22,8 +22,8 @@ export function mountStorageSettings(root: HTMLElement): void {
     };
   };
 
-  const fillS3Form = () => {
-    const config = getS3Config();
+  const fillS3Form = async () => {
+    const config = await getS3Config();
     if (!config) return;
     for (const [key, value] of Object.entries(config)) {
       const field = s3Form.querySelector<HTMLInputElement>(`[name=${key}]`);
@@ -69,5 +69,7 @@ export function mountStorageSettings(root: HTMLElement): void {
     }
   });
 
-  fillS3Form();
+  void fillS3Form().catch((error: unknown) => {
+    setStatus(s3Status, error instanceof Error ? error.message : "加载失败");
+  });
 }

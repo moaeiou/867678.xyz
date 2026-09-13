@@ -146,8 +146,12 @@ export function renderPost(post: Post): HTMLElement {
     actionButton("save", ICONS.bookmark, "收藏", 0),
     actionButton("share", ICONS.share, "分享", 0),
   );
-  if (post.reposted) actions.children[1].classList.add("is-reposted");
-  if (post.liked) actions.children[2].classList.add("is-liked");
+  if (post.viewer?.reposted) {
+    actions.children[1].classList.add("is-reposted");
+  }
+  if (post.viewer?.liked) {
+    actions.children[2].classList.add("is-liked");
+  }
 
   body.append(actions);
   article.append(avatar, body);

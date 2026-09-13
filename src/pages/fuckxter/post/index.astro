@@ -42,12 +42,14 @@ import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
 <script>
   import { navigate } from "astro:transitions/client";
   import {
+    createComment,
+    getComments,
     getPostByPath,
     getPostById,
     toggleLike,
     toggleRepost,
   } from "../../../lib/fuckxter/api";
-  import { getAccount } from "../../../lib/fuckxter/auth";
+  import { getAccount, hydrateSession } from "../../../lib/fuckxter/auth";
   import {
     actionButton,
     authorAvatar,
@@ -58,34 +60,12 @@ import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
     statusRow,
   } from "../../../lib/fuckxter/dom";
   import { onFuckxterPageReady } from "../../../lib/fuckxter/page";
-  import type { Post } from "../../../lib/fuckxter/types";
+  import type { Comment, Post } from "../../../lib/fuckxter/types";
   import {
     parsePostPath,
     postPath,
     userPath,
   } from "../../../lib/fuckxter/urls";
-
-  interface Comment {
-    text: string;
-    at: string;
-    name: string;
-    handle: string;
-  }
-
-  const commentsKey = (id: string) => `fk-comments:${id}`;
-
-  function readComments(id: string): Comment[] {
-    try {
-      const raw = localStorage.getItem(commentsKey(id));
-      return raw ? (JSON.parse(raw) as Comment[]) : [];
-    } catch {
-      return [];
-    }
-  }
-
-  function writeComments(id: string, comments: Comment[]) {
-    localStorage.setItem(commentsKey(id), JSON.stringify(comments));
-  }
 
   const fullTime = (iso: string) =>
     new Date(iso).toLocaleString("zh-CN", {
@@ -141,8 +121,8 @@ import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
     const likeBtn = actions.querySelector<HTMLButtonElement>(
       '[data-action="like"]',
     )!;
-    repostBtn.classList.toggle("is-reposted", Boolean(post.reposted));
-    likeBtn.classList.toggle("is-liked", Boolean(post.liked));
+    repostBtn.classList.toggle("is-reposted", Boolean(post.viewer?.reposted));
+    likeBtn.classList.toggle("is-liked", Boolean(post.viewer?.liked));
 
     const setCount = (btn: HTMLButtonElement, count: number) => {
       btn.dataset.count = String(count);
@@ -202,8 +182,7 @@ import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
     const status = el("p", "fk-form-status");
     status.setAttribute("aria-live", "polite");
 
-    const renderList = () => {
-      const comments = readComments(postId);
+    const renderList = (comments: Comment[]) => {
       list.replaceChildren(
         ...(comments.length === 0
           ? [
@@ -219,13 +198,13 @@ import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
             ]
           : comments.map((c) => {
               const item = el("div", "fk-comment");
-              const avatar = authorAvatar(c.handle, c.name);
+              const avatar = authorAvatar(c.author.handle, c.author.name);
               const body = el("div", "fk-comment-body");
               const head = el("header", "fk-comment-head");
               const name = el("strong");
-              name.textContent = c.name;
+              name.textContent = c.author.name;
               const time = el("time");
-              time.textContent = fullTime(c.at);
+              time.textContent = fullTime(c.createdAt);
               head.append(name, time);
               const text = el("p", "fk-comment-text");
               text.textContent = c.text;
@@ -234,6 +213,16 @@ import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
               return item;
             })),
       );
+    };
+
+    const refreshComments = async () => {
+      try {
+        renderList(await getComments(postId));
+      } catch (error) {
+        renderList([]);
+        status.textContent =
+          error instanceof Error ? error.message : "评论加载失败";
+      }
     };
 
     const me = getAccount();
@@ -245,34 +234,36 @@ import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
     submit.type = "button";
     submit.textContent = "评论";
     submit.disabled = !me;
-    submit.addEventListener("click", () => {
+    submit.addEventListener("click", async () => {
       const text = input.value.trim();
       if (!text || !me) return;
-      const comments = readComments(postId);
-      comments.push({
-        text,
-        at: new Date().toISOString(),
-        name: me.profile.name,
-        handle: me.profile.handle,
-      });
-      writeComments(postId, comments);
-      input.value = "";
-      renderList();
-      status.textContent = "";
+      submit.disabled = true;
+      try {
+        await createComment(postId, text);
+        input.value = "";
+        status.textContent = "";
+        await refreshComments();
+      } catch (error) {
+        status.textContent =
+          error instanceof Error ? error.message : "评论失败";
+      } finally {
+        submit.disabled = false;
+      }
     });
 
     const composer = el("div", "fk-comments-composer");
     composer.append(input, submit);
     box.append(title, composer, status, list);
-    renderList();
+    void refreshComments();
     return box;
   }
 
-  const mount = () => {
+  const mount = async () => {
     const container = document.querySelector<HTMLElement>("[data-fk-post]");
     if (!container) return;
     if (container.dataset.fkPostMounted === "true") return;
     container.dataset.fkPostMounted = "true";
+    await hydrateSession();
 
     container
       .querySelector<HTMLButtonElement>("[data-role=back]")!
@@ -304,26 +295,34 @@ import FuckxterLayout from "../../../layouts/FuckxterLayout.astro";
         ? getPostById(legacyId)
         : Promise.resolve(null);
 
-    void postRequest.then((post) => {
-      if (!post) {
-        host.replaceChildren(
-          statusRow("没有找到这条帖子，可能还未加载或已失效。"),
+    void postRequest
+      .then((post) => {
+        if (!post) {
+          host.replaceChildren(
+            statusRow("没有找到这条帖子，可能还未加载或已失效。"),
+          );
+          return;
+        }
+        if (!parsedPath) {
+          history.replaceState(null, "", postPath(post));
+        }
+        document.title = `${post.author.name}：${post.text.slice(0, 30)} | MoAEIOU`;
+        host.replaceChildren(renderPostDetail(post));
+        side.replaceChildren(
+          renderPostInfo(post),
+          renderPostControls(post),
+          renderComments(post.id),
         );
-        return;
-      }
-      if (!parsedPath) {
-        history.replaceState(null, "", postPath(post));
-      }
-      document.title = `${post.author.name}：${post.text.slice(0, 30)} | MoAEIOU`;
-      host.replaceChildren(renderPostDetail(post));
-      side.replaceChildren(
-        renderPostInfo(post),
-        renderPostControls(post),
-        renderComments(post.id),
-      );
-      side.hidden = false;
-    });
+        side.hidden = false;
+      })
+      .catch((error: unknown) => {
+        host.replaceChildren(
+          statusRow(error instanceof Error ? error.message : "帖子加载失败。"),
+        );
+      });
   };
 
-  onFuckxterPageReady(mount);
+  onFuckxterPageReady(() => {
+    void mount();
+  });
 </script>

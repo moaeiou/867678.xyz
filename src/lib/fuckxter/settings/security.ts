@@ -4,7 +4,6 @@ import {
   changePassword,
   confirmTwoFactor,
   generateRecoveryCodes,
-  getRecoveryCodeCount,
 } from "../auth";
 import {
   downloadRecoveryCodes,
@@ -183,7 +182,7 @@ export function mountSecuritySettings(
   const renderRecovery = (showCodes = false) => {
     const account = context.getAccount();
     if (!account) return;
-    const recoveryCount = getRecoveryCodeCount();
+    const recoveryCount = account.recoveryCodeCount;
     recoveryBox.hidden = !showCodes;
     recoveryHint.hidden = account.twoFactorEnabled;
     recoverySummary.hidden = !account.twoFactorEnabled || recoveryCount === 0;
@@ -196,16 +195,23 @@ export function mountSecuritySettings(
     recoveryGenerate.disabled = true;
     recoveryReplace.disabled = true;
     try {
-      const codes = await generateRecoveryCodes();
+      const result = await generateRecoveryCodes();
       root
         .querySelector<HTMLElement>("[data-role=recovery-list]")!
         .replaceChildren(
-          ...codes.map((code) => {
+          ...result.codes.map((code) => {
             const item = document.createElement("li");
             item.textContent = code;
             return item;
           }),
         );
+      const account = context.getAccount();
+      if (account) {
+        context.setAccount({
+          ...account,
+          recoveryCodeCount: result.recoveryCodeCount,
+        });
+      }
       renderRecovery(true);
     } catch (error) {
       setStatus(

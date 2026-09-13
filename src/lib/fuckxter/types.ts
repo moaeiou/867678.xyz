@@ -28,14 +28,19 @@ export interface PostMedia {
 
 export interface Post {
   id: string;
+  /** Stable public URL segment returned by the backend. */
+  slug: string;
   author: FeedUser;
   text: string;
   /** ISO 8601 */
   createdAt: string;
   stats: PostStats;
   media?: PostMedia;
-  liked?: boolean;
-  reposted?: boolean;
+  viewer?: {
+    liked: boolean;
+    reposted: boolean;
+    saved: boolean;
+  };
 }
 
 /** 时间线分页响应：nextCursor 为 null 表示没有更多了 */
@@ -60,4 +65,11 @@ export interface RepostResult {
 export interface SearchResult {
   query: string;
   posts: Post[];
+}
+
+export interface Comment {
+  id: string;
+  author: FeedUser;
+  text: string;
+  createdAt: string;
 }

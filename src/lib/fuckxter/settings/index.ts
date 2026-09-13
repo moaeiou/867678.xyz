@@ -1,5 +1,5 @@
 import { navigate } from "astro:transitions/client";
-import { getAccount, type Account } from "../auth";
+import { getAccount, hydrateSession, type Account } from "../auth";
 import { mountProfileSettings } from "./profile";
 import { mountSavedSettings } from "./saved";
 import { mountSecuritySettings } from "./security";
@@ -12,7 +12,14 @@ export function mountFuckxterSettings(
 ): void {
   if (root.dataset.fkSettingsMounted) return;
   root.dataset.fkSettingsMounted = "true";
+  void mountSettings(root, initialTab);
+}
 
+async function mountSettings(
+  root: HTMLElement,
+  initialTab: SettingsSection,
+): Promise<void> {
+  await hydrateSession();
   let account: Account | null = getAccount();
   if (!account) {
     void navigate("/fuckxter");

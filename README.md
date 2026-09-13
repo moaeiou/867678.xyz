@@ -42,6 +42,30 @@ To solve this problem, we created a simple script.
 
 Run `pnpm fresh` to run this script and refresh the CDN cache, so that the CDN gets the latest files.
 
+## FuckXter API
+
+FuckXter uses a separate Cloudflare Worker API. Configure the Worker origin
+before running the frontend:
+
+```bash
+cp .env.example .env
+```
+
+```dotenv
+PUBLIC_FUCKXTER_API_URL=https://api.example.com
+```
+
+The Worker must allow the frontend origin with credentials:
+
+- `Access-Control-Allow-Origin`: the exact frontend origin
+- `Access-Control-Allow-Credentials: true`
+- `Access-Control-Allow-Headers: Content-Type, X-Fuckxter-Client`
+- `Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS`
+
+Session cookies must use `Secure`, `HttpOnly`, and `SameSite=None`. Using an
+API subdomain such as `api.867678.xyz` is preferable to `workers.dev`, because
+browsers increasingly restrict cookies from a different site.
+
 ## ⚖️ LICENSE
 
 This web site and the 2rd project (moitools fuckxter and cyaks) aslo licensed under the [MoPL](https://867678.xyz/docs/mopl)

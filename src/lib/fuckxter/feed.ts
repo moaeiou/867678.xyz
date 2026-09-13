@@ -2,7 +2,6 @@ import { navigate } from "astro:transitions/client";
 import {
   createPost,
   getTimeline,
-  isSaved,
   searchPosts,
   toggleLike,
   toggleRepost,
@@ -148,7 +147,7 @@ export function mountFeed(container: HTMLElement): FeedControls {
   const addPost = (post: Post): HTMLElement => {
     ensureLayout();
     const node = renderPost(post);
-    if (isSaved(post.id)) {
+    if (post.viewer?.saved) {
       node
         .querySelector<HTMLElement>('.fk-action[data-action="save"]')
         ?.classList.add("is-saved");
